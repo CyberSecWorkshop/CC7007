@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC7007 — The Evil's Den: Memory Forensics Workshop</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark:      #080B10;
+  --surface:   #0E1520;
+  --card:      #121A27;
+  --panel:     #070A0F;
+  --border:    rgba(255,255,255,0.07);
+  --violet:    #7C3AED;
+  --violet-l:  #A78BFA;
+  --violet-d:  #4C1D95;
+  --pink:      #EC4899;
+  --pink-l:    #F9A8D4;
+  --cyan:      #22D3EE;
+  --cyan-d:    #0891B2;
+  --green:     #10B981;
+  --green-l:   #6EE7B7;
+  --amber:     #F59E0B;
+  --amber-l:   #FDE68A;
+  --red:       #EF4444;
+  --red-l:     #FCA5A5;
+  --orange:    #F97316;
+  --text:      #CBD5E1;
+  --muted:     #64748B;
+  --white:     #F8FAFC;
+  --mono:      'JetBrains Mono', monospace;
+  --head:      'Syne', sans-serif;
+  --body:      'DM Sans', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.85;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--panel);border-right:1px solid rgba(124,58,237,0.18);overflow-y:auto;z-index:100;padding-bottom:80px}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid rgba(124,58,237,0.15);margin-bottom:4px}
+.sb-week{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--pink);display:block;margin-bottom:5px;text-transform:uppercase}
+.sb-title{font-family:var(--head);font-size:13px;font-weight:700;color:var(--violet-l);line-height:1.35}
+.nav-group{padding:12px 18px 3px;font-family:var(--mono);font-size:8px;letter-spacing:2.5px;color:rgba(100,116,139,0.5);text-transform:uppercase}
+.sidebar a{display:block;padding:5px 18px 5px 22px;font-size:12px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all .18s;line-height:1.4}
+.sidebar a:hover,.sidebar a.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(34,211,238,0.04)}
+.sidebar a.flag-a{color:#6EE7B7}
+.sidebar a.flag-a:hover,.sidebar a.flag-a.active{color:var(--green);border-left-color:var(--green);background:rgba(16,185,129,0.05)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1}
+.main{margin-left:240px;padding:0 48px 80px;max-width:980px;width:100%}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(150deg,#050709 0%,#100722 55%,#050709 100%);border-bottom:2px solid var(--violet);padding:54px 48px 46px;margin:0 -48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-40px;width:420px;height:420px;background:radial-gradient(circle,rgba(124,58,237,0.14),transparent 62%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-50px;left:80px;width:260px;height:260px;background:radial-gradient(circle,rgba(236,72,153,0.07),transparent 65%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.45);color:var(--violet-l);font-family:var(--mono);font-size:10px;letter-spacing:3px;padding:5px 14px;border-radius:3px;margin-bottom:20px;text-transform:uppercase}
+.hero h1{font-family:var(--head);font-size:48px;font-weight:800;color:var(--white);line-height:1.05;margin-bottom:14px}
+.hero h1 em{color:var(--violet-l);font-style:normal}
+.hero p.tagline{font-size:15px;color:var(--muted);font-weight:300;max-width:600px;margin-bottom:28px;line-height:1.75}
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted)}
+.chip b{color:var(--text);font-weight:500}
+.chip.hi b{color:var(--violet-l)}
+.chip.warn b{color:var(--amber)}
+
+/* ── DIVIDERS ── */
+.divider{margin:52px 0 24px;padding:12px 22px 12px 26px;background:var(--panel);border:1px solid rgba(124,58,237,0.22);border-left:5px solid var(--violet);border-radius:0 8px 8px 0;font-family:var(--head);font-size:14px;font-weight:700;color:var(--violet-l);letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.divider.cyan-d{border-left-color:var(--cyan);color:var(--cyan)}
+.divider.green-d{border-left-color:var(--green);color:var(--green)}
+.divider.amber-d{border-left-color:var(--amber);color:var(--amber)}
+.divider.pink-d{border-left-color:var(--pink);color:var(--pink)}
+.divider.red-d{border-left-color:var(--red);color:var(--red-l)}
+
+h2.sec{font-family:var(--head);font-size:22px;font-weight:700;color:var(--violet-l);margin:30px 0 10px;border-bottom:1px solid rgba(124,58,237,0.2);padding-bottom:7px}
+h3.sub{font-family:var(--head);font-size:13px;font-weight:700;color:var(--pink);letter-spacing:1.5px;text-transform:uppercase;margin:20px 0 8px}
+p{margin-bottom:13px;font-size:14.5px;line-height:1.85}
+strong{color:var(--white);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;color:var(--cyan);background:rgba(34,211,238,0.08);padding:2px 7px;border-radius:3px}
+ul.normal{padding-left:22px;margin-bottom:14px}
+ul.normal li{margin-bottom:6px;font-size:14.5px;line-height:1.7}
+
+/* ── SCENARIO ── */
+.scenario-card{background:linear-gradient(135deg,#0B0E18,#130B20);border:1px solid rgba(236,72,153,0.35);border-left:5px solid var(--pink);border-radius:8px;padding:26px 30px;margin:16px 0;position:relative;overflow:hidden}
+.scenario-card::after{content:'🕵️';position:absolute;right:18px;top:14px;font-size:36px;opacity:.1}
+.sc-ref{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(236,72,153,0.5);margin-bottom:10px;text-transform:uppercase}
+.sc-body{font-size:14.5px;color:#C8C8C8;line-height:1.85}
+.sc-body p{color:#C8C8C8;font-size:14.5px;margin-bottom:10px}
+.sc-body p:last-child{margin:0}
+
+/* ── CONCEPT ── */
+.concept{background:var(--card);border:1px solid rgba(124,58,237,0.2);border-radius:10px;margin:16px 0;overflow:hidden}
+.concept-header{background:rgba(124,58,237,0.07);border-bottom:1px solid rgba(124,58,237,0.14);padding:13px 20px;display:flex;align-items:center;gap:12px}
+.concept-header .ch-icon{font-size:21px}
+.concept-header .ch-title{font-family:var(--head);font-size:16px;font-weight:700;color:var(--violet-l)}
+.concept-header .ch-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.concept-body{padding:18px 22px;font-size:14px;line-height:1.85;color:var(--text)}
+.concept-body p{font-size:14px;margin-bottom:10px}
+.concept-body p:last-child{margin:0}
+
+/* ── ANALOGY ── */
+.analogy{background:linear-gradient(135deg,rgba(124,58,237,0.07),rgba(124,58,237,0.02));border:1px solid rgba(124,58,237,0.28);border-radius:8px;padding:16px 20px;margin:13px 0;font-size:13.5px;color:var(--violet-l);line-height:1.7}
+.analogy .an-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--violet);text-transform:uppercase;margin-bottom:7px;font-weight:700}
+
+/* ── BOXES ── */
+.box{border-radius:8px;padding:15px 19px;margin:13px 0;font-size:13.5px;line-height:1.7}
+.box .bx-label{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;font-weight:700;display:flex;align-items:center;gap:7px}
+.box.tip{background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.22);color:var(--text)}
+.box.tip .bx-label{color:var(--cyan)}
+.box.warn{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.28);color:#FDE68A}
+.box.warn .bx-label{color:var(--amber)}
+.box.danger{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.28);color:var(--red-l)}
+.box.danger .bx-label{color:var(--red)}
+.box.success{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.28);color:var(--green-l)}
+.box.success .bx-label{color:var(--green)}
+.box.purple{background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.28);color:var(--violet-l)}
+.box.purple .bx-label{color:var(--violet-l)}
+.box p{margin:0 0 6px;font-size:13.5px;line-height:1.65}
+.box p:last-child{margin:0}
+.box strong{color:var(--white)}
+
+/* ── GOAL BOX ── */
+.goal-box{background:linear-gradient(135deg,rgba(245,158,11,0.06),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.32);border-radius:8px;padding:16px 20px;margin:15px 0}
+.goal-box .gb-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--amber);text-transform:uppercase;margin-bottom:10px;font-weight:700;display:flex;align-items:center;gap:8px}
+.goal-box .gb-label::before{content:'🎯'}
+.goal-box ul{list-style:none;padding:0}
+.goal-box ul li{font-size:13.5px;color:var(--amber-l);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(245,158,11,0.1)}
+.goal-box ul li:last-child{border:none}
+.goal-box ul li::before{content:'→';position:absolute;left:0;color:var(--amber)}
+
+/* ── COMMAND BLOCK ── */
+.cmd-wrap{margin:18px 0;border:1px solid rgba(124,58,237,0.2);border-radius:8px;overflow:hidden}
+.cmd-header{background:rgba(124,58,237,0.07);border-bottom:1px solid rgba(124,58,237,0.14);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.cmd-header .ch-pill{background:var(--violet);color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:3px 12px;border-radius:12px;flex-shrink:0}
+.cmd-header .ch-pill.green{background:var(--green)}
+.cmd-header .ch-pill.pink{background:var(--pink)}
+.cmd-header .ch-pill.amber{background:var(--amber);color:#1a0e00}
+.cmd-header .ch-desc{font-size:13px;color:var(--text);font-weight:500}
+.cmd-inner{padding:14px 18px;background:rgba(255,255,255,0.01)}
+
+/* ── CODE ── */
+.code-block{background:#050709;border:1px solid rgba(34,211,238,0.14);border-left:3px solid var(--cyan);border-radius:6px;overflow:hidden;margin:9px 0}
+.code-block.output-block{border-left-color:rgba(255,255,255,0.1)}
+.code-block.amber-block{border-left-color:var(--amber)}
+.code-block.violet-block{border-left-color:var(--violet)}
+.code-block.green-block{border-left-color:var(--green)}
+.code-block.pink-block{border-left-color:var(--pink)}
+.code-block .cb-top{background:rgba(34,211,238,0.03);border-bottom:1px solid rgba(34,211,238,0.08);padding:5px 14px;display:flex;justify-content:space-between;align-items:center}
+.code-block.output-block .cb-top{background:rgba(255,255,255,0.02);border-bottom-color:rgba(255,255,255,0.05)}
+.code-block.amber-block .cb-top{background:rgba(245,158,11,0.04);border-bottom-color:rgba(245,158,11,0.12)}
+.code-block.violet-block .cb-top{background:rgba(124,58,237,0.04);border-bottom-color:rgba(124,58,237,0.12)}
+.code-block.green-block .cb-top{background:rgba(16,185,129,0.04);border-bottom-color:rgba(16,185,129,0.12)}
+.code-block.pink-block .cb-top{background:rgba(236,72,153,0.04);border-bottom-color:rgba(236,72,153,0.12)}
+.cb-top .lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(100,116,139,0.55);text-transform:uppercase}
+.cb-top .tag{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:1px 8px;border-radius:3px}
+.tag.linux{color:var(--orange);background:rgba(249,115,22,0.1)}
+.tag.out{color:rgba(100,116,139,0.5);background:rgba(255,255,255,0.04)}
+.tag.key{color:var(--amber);background:rgba(245,158,11,0.1)}
+.tag.tool{color:var(--pink);background:rgba(236,72,153,0.1)}
+.tag.py{color:var(--violet-l);background:rgba(124,58,237,0.12)}
+pre{font-family:var(--mono);font-size:12.5px;color:#00E5A0;line-height:1.8;padding:14px 16px;overflow-x:auto;white-space:pre}
+.code-block.output-block pre{color:#94A3B8}
+.code-block.amber-block pre{color:#FDE68A}
+.code-block.violet-block pre{color:#C4B5FD}
+.code-block.green-block pre{color:var(--green-l)}
+.code-block.pink-block pre{color:var(--pink-l)}
+.hl{color:#00E5A0!important;font-weight:700}
+.hl-v{color:#C4B5FD!important;font-weight:700}
+.hl-p{color:#F9A8D4!important;font-weight:700}
+.hl-a{color:#FDE68A!important;font-weight:700}
+.hl-r{color:#FCA5A5!important;font-weight:700}
+.hl-c{color:#67E8F9!important;font-weight:700}
+
+/* ── LOOK-FOR ── */
+.look-for{background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.22);border-radius:7px;padding:14px 18px;margin:11px 0}
+.look-for .lf-head{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--violet-l);text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.look-for .lf-head::before{content:'👁'}
+.look-for ul{list-style:none;padding:0}
+.look-for ul li{font-size:13.5px;color:var(--text);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(255,255,255,0.04)}
+.look-for ul li:last-child{border:none}
+.look-for ul li::before{content:'→';position:absolute;left:0;color:var(--violet-l)}
+
+/* ── FLAG BOX ── */
+.flag-box{background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(16,185,129,0.02));border:1px solid rgba(16,185,129,0.4);border-left:5px solid var(--green);border-radius:8px;padding:22px 28px;margin:24px 0;position:relative;overflow:hidden}
+.flag-box::after{content:'⚑';position:absolute;right:20px;top:12px;font-size:34px;color:rgba(16,185,129,0.1);pointer-events:none}
+.fb-label{font-family:var(--mono);font-size:9.5px;letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:9px}
+.fb-val{font-family:var(--mono);font-size:12.5px;color:var(--green);margin-bottom:12px;word-break:break-all;line-height:1.7;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.18);border-radius:5px;padding:10px 14px}
+.fb-why{font-size:13px;color:var(--green-l);line-height:1.7;border-top:1px solid rgba(16,185,129,0.15);padding-top:11px}
+
+/* ── ROADMAP ── */
+.roadmap{border-left:2px solid rgba(124,58,237,0.28);margin:16px 0 26px;padding-left:0}
+.rm-item{display:flex;gap:14px;padding:9px 0 9px 22px;position:relative}
+.rm-item::before{content:'';position:absolute;left:-7px;top:16px;width:12px;height:12px;background:var(--violet);border-radius:50%;border:2px solid var(--dark)}
+.rm-item.rm-flag::before{background:var(--green)}
+.rm-item.rm-tool::before{background:var(--pink)}
+.rm-step{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--violet-l);min-width:56px;text-transform:uppercase;margin-top:2px;flex-shrink:0}
+.rm-item.rm-flag .rm-step{color:var(--green)}
+.rm-item.rm-tool .rm-step{color:var(--pink)}
+.rm-title{font-family:var(--head);font-size:15px;font-weight:600;color:var(--white);margin-bottom:2px}
+.rm-desc{font-size:12.5px;color:var(--muted)}
+
+/* ── GRID CARDS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 20px}
+.grid-card{background:var(--card);border:1px solid rgba(124,58,237,0.16);border-radius:7px;padding:14px 16px}
+.grid-card .gc-cmd{font-family:var(--mono);font-size:12.5px;color:var(--cyan);margin-bottom:5px}
+.grid-card .gc-desc{font-size:13px;color:var(--muted)}
+
+/* ── TECH DIFF TABLE ── */
+.diff-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px}
+.diff-table th{background:rgba(124,58,237,0.1);color:var(--violet-l);font-family:var(--head);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px;text-align:left;border:1px solid rgba(124,58,237,0.18)}
+.diff-table td{padding:9px 14px;border:1px solid rgba(255,255,255,0.06);color:var(--text);vertical-align:top}
+.diff-table tr:nth-child(even) td{background:rgba(255,255,255,0.015)}
+.diff-table td:first-child{color:var(--muted);font-family:var(--mono);font-size:12px}
+.diff-table td.hi{color:var(--green);font-weight:500}
+.diff-table td.lo{color:var(--amber);font-weight:500}
+
+/* ── RECAP CARDS ── */
+.recap-grid{display:flex;flex-direction:column;gap:11px;margin:16px 0 24px}
+.recap-card{border-radius:0 8px 8px 0;padding:16px 20px}
+.recap-card .rc-title{font-family:var(--head);font-size:16px;font-weight:700;margin-bottom:5px}
+.recap-card .rc-body{font-size:13.5px;line-height:1.65;color:var(--muted)}
+
+/* ── SETUP STEP ── */
+.setup-step{margin:15px 0;border:1px solid rgba(124,58,237,0.18);border-radius:8px;overflow:hidden}
+.setup-step-head{background:rgba(124,58,237,0.07);border-bottom:1px solid rgba(124,58,237,0.12);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.sn{background:var(--violet);color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;flex-shrink:0}
+.sn.green-n{background:var(--green)}
+.sn.pink-n{background:var(--pink)}
+.sn.amber-n{background:var(--amber);color:#1a0e00}
+.st-desc{font-size:13.5px;font-weight:500;color:var(--text)}
+.setup-step-body{padding:14px 18px;background:rgba(255,255,255,0.005)}
+
+/* ── QUIZ ── */
+.quiz-progress{display:flex;gap:7px;margin-bottom:20px;align-items:center}
+.qp-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);margin-right:4px;text-transform:uppercase}
+.qp-dot{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:all .3s}
+.qp-dot.c{background:var(--green);border-color:var(--green)}
+.qp-dot.w{background:var(--red);border-color:var(--red)}
+.qcard{background:var(--card);border:1px solid rgba(124,58,237,0.2);border-radius:10px;margin:13px 0;overflow:hidden;transition:border-color .25s}
+.qcard.ac{border-color:rgba(16,185,129,0.5)}
+.qcard.aw{border-color:rgba(239,68,68,0.4)}
+.qcard-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.q-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--violet-l);text-transform:uppercase;margin-bottom:7px}
+.q-text{font-size:14.5px;font-weight:500;color:var(--white);line-height:1.55}
+.q-opts{padding:12px 20px 16px;display:flex;flex-direction:column;gap:8px}
+.q-opt{display:flex;align-items:flex-start;gap:11px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:10px 13px;cursor:pointer;transition:all .18s;text-align:left;width:100%;font-family:var(--body)}
+.q-opt:hover:not(:disabled){background:rgba(124,58,237,0.08);border-color:rgba(124,58,237,0.4)}
+.q-opt:disabled{cursor:default}
+.opt-let{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,0.06);border-radius:4px;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s}
+.opt-txt{font-size:13.5px;color:var(--text);line-height:1.5}
+.q-opt.correct{background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.42)}
+.q-opt.correct .opt-let{background:var(--green);color:#052E16}
+.q-opt.correct .opt-txt{color:var(--green-l)}
+.q-opt.wrong{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.35)}
+.q-opt.wrong .opt-let{background:var(--red);color:var(--white)}
+.q-opt.wrong .opt-txt{color:var(--red-l);text-decoration:line-through}
+.q-opt.dimmed{opacity:.3}
+.q-fb{display:none;margin:0 20px 16px;border-radius:7px;padding:12px 15px;font-size:13.5px;line-height:1.65;animation:fadeUp .3s ease}
+.q-fb.show{display:block}
+.fb-badge{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-weight:700}
+.q-fb.cfb{background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.26);color:var(--green-l)}
+.q-fb.cfb .fb-badge{color:var(--green)}
+.q-fb.wfb{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.26);color:var(--red-l)}
+.q-fb.wfb .fb-badge{color:var(--red)}
+.scoreboard{display:none;background:var(--panel);border:1px solid rgba(124,58,237,0.38);border-radius:10px;padding:32px;margin:24px 0;text-align:center;animation:fadeUp .4s ease}
+.scoreboard.show{display:block}
+.sb-title2{font-family:var(--head);font-size:17px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.sb-score{font-family:var(--head);font-size:62px;font-weight:800;line-height:1;margin-bottom:5px}
+.sb-of{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+.sb-msg{font-size:14.5px;color:var(--text);margin-bottom:24px;font-style:italic}
+.sb-btn{background:var(--violet);color:var(--white);font-family:var(--head);font-size:15px;font-weight:700;padding:10px 28px;border-radius:6px;border:none;cursor:pointer;transition:background .2s}
+.sb-btn:hover{background:var(--violet-l);color:var(--dark)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── FOOTER ── */
+footer{background:var(--panel);border-top:2px solid var(--violet);margin-left:240px;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.f-left .f-course{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+.f-left .f-mod{font-family:var(--head);font-size:18px;font-weight:700;color:var(--violet-l)}
+.f-right{text-align:right}
+.f-right .f-name{font-family:var(--head);font-size:18px;font-weight:700;color:var(--white)}
+.f-right .f-sub{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:var(--violet);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <span class="sb-week">// CC7007 · Workshop 5</span>
+    <span class="sb-title">The Evil's Den — Script Recovery &amp; Steganography</span>
+  </div>
+
+  <div class="nav-group">Before You Start</div>
+  <a href="#understand">What Are We Actually Doing?</a>
+  <a href="#vs-cridex">How This Differs from MemLabs 2</a>
+  <a href="#scenario">The Case Briefing</a>
+  <a href="#roadmap-sec">Investigation Roadmap</a>
+  <a href="#download">Download the Evidence</a>
+
+  <div class="nav-group">Setup on Kali</div>
+  <a href="#setup-tools">Step S1 — Extra Tools Needed</a>
+  <a href="#setup-verify">Step S2 — Verify &amp; imageinfo</a>
+
+  <div class="nav-group">The Investigation</div>
+  <a href="#step1">Step 1 — Profile the Image</a>
+  <a href="#step2">Step 2 — Process List (pslist)</a>
+  <a href="#step3">Step 3 — Command History (cmdline)</a>
+  <a class="flag-a" href="#finding1">⚑ Finding 1 — Two Suspicious Files</a>
+  <a href="#step4">Step 4 — File Scan (filescan)</a>
+  <a href="#step5">Step 5 — Dump the Files (dumpfiles)</a>
+  <a href="#step6">Step 6 — Reverse the Encryption</a>
+  <a class="flag-a" href="#finding2">⚑ Finding 2 — Flag Part 1</a>
+  <a href="#step7">Step 7 — Image Steganography</a>
+  <a class="flag-a" href="#finding3">⚑ Finding 3 — Flag Part 2</a>
+
+  <div class="nav-group">Finish Up</div>
+  <a href="#recap">What Did We Learn?</a>
+  <a href="#quiz">Knowledge Check</a>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">CC7007 · Workshop 5</div>
+  <h1>The Evil's Den<br><em>Script Recovery &amp; Steganography</em></h1>
+  <p class="tagline">An encrypted ransom script. A hidden image. A flag split across two artefacts — one needing cryptanalysis, one needing a steganography tool. This workshop teaches file carving from memory and multi-step evidence chaining.</p>
+  <div class="chips">
+    <div class="chip hi">Tool: <b>Volatility 2 · Kali Linux</b></div>
+    <div class="chip warn">OS: <b>Windows 7 SP1 x86</b></div>
+    <div class="chip">Dump: <b>MemoryDump_Lab3.raw</b></div>
+    <div class="chip">New skill: <b>steghide + CyberChef</b></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     WHAT ARE WE DOING
+══════════════════════════════ -->
+<div class="divider" id="understand">🧠 WHAT ARE WE ACTUALLY DOING? — READ FIRST</div>
+
+<p>Last workshop you analysed the <strong>MemLabs Lab 2 — Alissa Simpson</strong> image — a scenario focused on user activity reconstruction: finding a deleted file, recovering a password, and identifying what a suspect was doing at time of capture. That investigation was about <strong>user artefact recovery</strong>: process context, registry traces, and file recovery.</p>
+
+<p>This workshop is different. The attacker here is not running persistent malware — they have <strong>executed a script that encrypted sensitive data and then cleared the visible traces</strong>. The encrypted file is still on the machine, but the key is hidden in steganography inside an image file. The only way to recover the information is to dig both artefacts out of memory and chain them together.</p>
+
+<h2 class="sec">What new skills does this add?</h2>
+
+<div class="grid-2">
+  <div class="grid-card" style="border-left:3px solid var(--violet-l)">
+    <div class="gc-cmd" style="color:var(--violet-l)">File carving from memory</div>
+    <div class="gc-desc"><code>filescan</code> + <code>dumpfiles</code> — locate and extract files that were open in memory, even if deleted from disk</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--pink)">
+    <div class="gc-cmd" style="color:var(--pink)">Reading command history</div>
+    <div class="gc-desc"><code>cmdline</code> reveals the exact arguments passed to every running process — including what files were open in Notepad</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--amber)">
+    <div class="gc-cmd" style="color:var(--amber)">Reversing simple encryption</div>
+    <div class="gc-desc">A Python XOR + Base64 script encrypted a secret. You will reverse it using CyberChef — no programming required</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--cyan)">
+    <div class="gc-cmd">Steganography extraction</div>
+    <div class="gc-desc"><code>steghide</code> extracts data hidden inside a JPEG image — requiring the first flag half as the passphrase. Evidence chains matter.</div>
+  </div>
+</div>
+
+<div id="vs-cridex" style="margin-top:28px"></div>
+<h2 class="sec">How this differs from the MemLabs 2 workshop</h2>
+
+<table class="diff-table">
+  <thead>
+    <tr><th>Dimension</th><th>MemLabs 2 — Alissa Simpson (Workshop 4)</th><th>Evil's Den (This workshop)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>OS profile</td><td class="lo">WinXPSP2x86 — Windows XP 32-bit</td><td class="hi">Win7SP1x86_23418 — Windows 7 32-bit</td></tr>
+    <tr><td>Threat type</td><td>Live banking trojan — persistent, networked</td><td>Script-based attack — encrypt, exfiltrate, clean up</td></tr>
+    <tr><td>Primary plugin</td><td>connections, malfind, procdump</td><td class="hi">cmdline, filescan, dumpfiles</td></tr>
+    <tr><td>New tool</td><td>None beyond Volatility</td><td class="hi">steghide, CyberChef (XOR brute force)</td></tr>
+    <tr><td>Evidence chain</td><td>Single thread — process → network → memory</td><td class="hi">Multi-hop — memory → file → crypto → stego → flag</td></tr>
+    <tr><td>Skill focus</td><td>Process forensics, network IOC, code injection</td><td class="hi">File carving, crypto reversal, evidence chaining</td></tr>
+  </tbody>
+</table>
+
+<p>Same Volatility framework, different investigative mindset. The MemLabs 2 workshop asked: <em>what did the user do, and what did they leave behind?</em> This workshop asks: <em>what did the attacker encrypt, where did they hide the key, and can we chain both artefacts together?</em></p>
+
+
+<!-- ══════════════════════════════
+     SCENARIO
+══════════════════════════════ -->
+<div class="divider pink-d" id="scenario">📁 THE CASE — READ BEFORE ANYTHING ELSE</div>
+
+<div class="scenario-card">
+  <div class="sc-ref">// Case Reference: EVILD-MEM-03 · Evidence acquired: 2018-09-30 · Profile: Win7SP1x86</div>
+  <div class="sc-body">
+    <p>An employee at a small software firm is suspected of exfiltrating proprietary source code before resigning. The IT team observed suspicious Python activity on the workstation shortly before the user logged off. A memory dump was taken from the live machine before shutdown.</p>
+    <p>Initial triage of the hard drive found a file called <code>vip.txt</code> on the Desktop containing what appeared to be a base64-encoded string — but decoding it produced garbled output. A file called <code>evilscript.py</code> was also present.</p>
+    <p>The IT team could not read the script's logic without running it, and they do not want to execute untrusted code. There is also a JPEG image on the Desktop that has not been examined. Your task: <strong>extract both files from the memory dump, reverse the encryption on vip.txt, and determine whether the image contains hidden data.</strong></p>
+  </div>
+</div>
+
+<div class="box tip">
+  <div class="bx-label">💡 Reading the clues</div>
+  <p><strong>Garbled base64 output</strong> → The data was XORed before being base64-encoded. Raw base64 decoding will not work — you need to reverse both operations in the correct order: decode base64 first, then XOR. The script in memory reveals the XOR key.</p>
+  <p><strong>JPEG image on the Desktop</strong> → Images are a common steganography carrier. <code>steghide</code> can embed files inside JPEG images invisibly. The hidden content is password-protected with the first half of the flag.</p>
+  <p><strong>Files were open at time of capture</strong> → Even if a user closes a file or tries to delete it, if any process had it open in the minutes before the dump, <code>filescan</code> will find its memory-backed handle and <code>dumpfiles</code> can extract it.</p>
+</div>
+
+
+<!-- ══════════════════════════════
+     ROADMAP
+══════════════════════════════ -->
+<div class="divider purple-d" id="roadmap-sec" style="border-left-color:var(--violet)">🗺 INVESTIGATION ROADMAP</div>
+
+<div class="roadmap" style="margin-top:20px">
+  <div class="rm-item"><div class="rm-step">Step 1</div><div><div class="rm-title">Identify the OS profile — <em>imageinfo</em></div><div class="rm-desc">Always first. This dump is Windows 7 x86 — different profile syntax from the x64 MemLabs 2 image you used last workshop</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 2</div><div><div class="rm-title">List running processes — <em>pslist</em></div><div class="rm-desc">Check what was running. Two Notepad instances is unusual — most users have one open at most</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 3</div><div><div class="rm-title">Read command arguments — <em>cmdline</em></div><div class="rm-desc">The exact files each process had open. Notepad stores the opened filename in its command line arguments</div></div></div>
+  <div class="rm-item rm-flag"><div class="rm-step">Finding 1</div><div><div class="rm-title">Two suspicious Desktop files — <em>evilscript.py</em> and <em>vip.txt</em></div><div class="rm-desc">Confirm the files the briefing mentioned are present and were being accessed at time of capture</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 4</div><div><div class="rm-title">Locate files in memory — <em>filescan</em></div><div class="rm-desc">Find the physical memory addresses (offsets) for both files and the JPEG — needed to extract them</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 5</div><div><div class="rm-title">Extract all three files — <em>dumpfiles</em></div><div class="rm-desc">Pull vip.txt, evilscript.py, and suspision1.jpeg from RAM to your output directory</div></div></div>
+  <div class="rm-item rm-tool"><div class="rm-step">Step 6</div><div><div class="rm-title">Reverse the XOR + Base64 encryption — <em>CyberChef</em></div><div class="rm-desc">Read the script to find the XOR key, then use CyberChef to invert the operations and recover the plaintext</div></div></div>
+  <div class="rm-item rm-flag"><div class="rm-step">Finding 2</div><div><div class="rm-title">Flag Part 1 recovered from vip.txt</div><div class="rm-desc">The decrypted content is the first half of the flag — you will also need it as the steghide passphrase</div></div></div>
+  <div class="rm-item rm-tool"><div class="rm-step">Step 7</div><div><div class="rm-title">Extract hidden data from JPEG — <em>steghide</em></div><div class="rm-desc">Use the flag part 1 as the passphrase to extract the embedded file from the JPEG image</div></div></div>
+  <div class="rm-item rm-flag"><div class="rm-step">Finding 3</div><div><div class="rm-title">Flag Part 2 recovered from steganographic image</div><div class="rm-desc">Combine both halves for the complete flag — the attacker's hidden communication channel is exposed</div></div></div>
+</div>
+
+
+<!-- ══════════════════════════════
+     DOWNLOAD
+══════════════════════════════ -->
+<div class="divider cyan-d" id="download">💾 GET THE EVIDENCE FILE</div>
+
+<p>Download <strong>MemoryDump_Lab3.raw</strong> from the MemLabs GitHub repository and save it to your Desktop. The file is approximately 500 MB — download it before the session.</p>
+
+<div style="background:var(--card);border:1px solid rgba(124,58,237,0.32);border-radius:8px;padding:18px 22px;margin:14px 0;display:flex;align-items:center;gap:16px">
+  <span style="font-size:28px;flex-shrink:0">💾</span>
+  <div style="flex:1">
+    <div style="font-family:var(--head);font-size:18px;font-weight:700;color:var(--white);margin-bottom:3px">MemoryDump_Lab3.raw</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:4px">Windows 7 SP1 x86 · ~500 MB · Created by stuxnet999 (P. Abhiram Kumar) for MemLabs</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--cyan)">https://github.com/stuxnet999/MemLabs — Lab 3 download link in README</div>
+  </div>
+</div>
+
+<div class="box warn">
+  <div class="bx-label">⚠️ Attribution</div>
+  <p>MemLabs was created by <strong>P. Abhiram Kumar (@_abhiramkumar)</strong> and is free to use for workshops and education. Please use the original GitHub link. The dump is licensed for educational use — do not redistribute the binary separately.</p>
+</div>
+
+<div class="box tip">
+  <div class="bx-label">💡 Save path matters</div>
+  <p>Every command in this guide uses <code>~/Desktop/MemoryDump_Lab3.raw</code>. Save it to the Desktop now. If it lands in Downloads, update the path in each command or move it first.</p>
+</div>
+
+
+<!-- ══════════════════════════════
+     SETUP
+══════════════════════════════ -->
+<div class="divider red-d" id="setup-tools">⚙️ SETUP — EXTRA TOOLS FOR THIS WORKSHOP</div>
+
+<p>Volatility 2 should already be installed from Workshop 4 (MemLabs 2). This workshop requires two additional tools that were not needed before.</p>
+
+<div class="setup-step">
+  <div class="setup-step-head">
+    <div class="sn pink-n">Step S1</div>
+    <div class="st-desc">Install steghide and create output folder</div>
+  </div>
+  <div class="setup-step-body">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Run once — Kali terminal</div><div class="tag linux">LINUX</div></div>
+      <pre># Install steghide
+sudo apt install steghide -y
+
+# Create fresh output folder for this lab
+mkdir -p ~/Desktop/lab3_output
+
+# Confirm Volatility 2 is accessible
+ls ~/volatility/vol.py</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 CyberChef — no install needed</div>
+      <p>CyberChef runs in your browser. Navigate to <code>https://gchq.github.io/CyberChef/</code> and keep the tab open — you will need it in Step 6 to reverse the encryption.</p>
+    </div>
+  </div>
+</div>
+
+<div class="setup-step" id="setup-verify">
+  <div class="setup-step-head">
+    <div class="sn">Step S2</div>
+    <div class="st-desc">Verify — run imageinfo on the Lab3 dump</div>
+  </div>
+  <div class="setup-step-body">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">From inside ~/volatility/</div><div class="tag linux">LINUX</div></div>
+      <pre>cd ~/volatility
+python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw imageinfo</pre>
+    </div>
+    <div class="code-block output-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Expected output</div><div class="tag out">OUTPUT</div></div>
+      <pre>Volatility Foundation Volatility Framework 2.6.1
+INFO    : volatility.debug    : Determining profile based on KDBG search...
+<span class="hl">          Suggested Profile(s) : Win7SP1x86_23418, Win7SP0x86, Win7SP1x86</span>
+                     AS Layer1 : IA32PagedMemory (Kernel AS)
+           Image date and time : 2018-09-30 09:47:33 UTC+0000</pre>
+    </div>
+    <div class="look-for">
+      <div class="lf-head">What to confirm</div>
+      <ul>
+        <li><strong>Win7SP1x86_23418</strong> — this is the exact profile string. Note that it has a build number suffix (<code>_23418</code>) — you must include the full string in every command</li>
+        <li>Date <strong>2018-09-30</strong> — this matches the case briefing. The capture was taken immediately before the user logged off</li>
+        <li>This is <strong>Windows 7 32-bit</strong>, not the 64-bit MemLabs 2 image from last workshop — different profile, different kernel structures</li>
+      </ul>
+    </div>
+    <div class="box warn">
+      <div class="bx-label">⚠️ Profile precision matters</div>
+      <p>Using <code>Win7SP1x86</code> without the build suffix <code>_23418</code> may work for most plugins, but can cause issues with some. Use the full suggested profile string: <strong>Win7SP1x86_23418</strong>. If you see unexpected errors, try the shorter <code>Win7SP1x86</code> as a fallback.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     INVESTIGATION
+══════════════════════════════ -->
+<div class="divider green-d">🔍 THE INVESTIGATION — STEP BY STEP</div>
+<p>Three parts to every step: <strong>why we are doing this</strong>, <strong>the command</strong>, <strong>what to look for</strong>. Read all three before typing anything.</p>
+
+
+<!-- STEP 1 -->
+<div class="divider" id="step1" style="margin-top:28px">STEP 1 — PROFILE THE IMAGE</div>
+
+<p>You already ran this during setup. This section explains what the profile means and why you should write it down verbatim.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🗺</div><div><div class="ch-title">Why Win7SP1x86_23418 and not just Win7?</div><div class="ch-sub">Profiles are not interchangeable across service packs</div></div></div>
+  <div class="concept-body">
+    <p>Volatility profiles are precise maps of how a specific Windows version arranges data in kernel memory. Microsoft changed internal data structures between service packs and even between build numbers. A profile for Windows 7 SP1 build 23418 has different memory offsets than SP0 or a different build of SP1.</p>
+    <p>Using the wrong profile means every plugin reads data from the wrong memory location. You might get output — it will just be wrong. Always use the full suggested profile string as-is.</p>
+    <p>Compare this to the MemLabs 2 image (Workshop 4) which used <code>Win7SP1x64</code> — the same OS but 64-bit. That dump's kernel structures are completely different. Profile is not just about the OS version — it is about the exact binary build.</p>
+  </div>
+</div>
+
+<div class="code-block">
+  <div class="cb-top"><div class="lbl">Reference — profile to use in every remaining command</div><div class="tag key">PATTERN</div></div>
+  <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 &lt;plugin&gt;</pre>
+</div>
+
+
+<!-- STEP 2 -->
+<div class="divider" id="step2" style="margin-top:28px">STEP 2 — LIST RUNNING PROCESSES</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to find out</div>
+  <ul>
+    <li>Get an inventory of everything running at the time of capture</li>
+    <li>Look for anything unexpected — processes running that do not match the described user activity</li>
+    <li>Pay specific attention to how many <strong>notepad.exe</strong> instances are open — and whether there are any scripting runtimes (<code>python.exe</code>, <code>cmd.exe</code>, <code>powershell.exe</code>)</li>
+  </ul>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Flat process inventory</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Kali Terminal</div><div class="tag linux">LINUX</div></div>
+      <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 pslist</pre>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Key lines from output</div><div class="tag out">OUTPUT</div></div>
+  <pre>Offset(V)    Name               PID   PPID  Thds  Hnds  Start
+0x...        System               4      0    ...
+0x...        explorer.exe      1352   1336    ...
+0x...        iexplore.exe      2316   1352    ...
+<span class="hl">0x...        notepad.exe       3736   1352    ...  ← Two Notepad instances?</span>
+<span class="hl">0x...        notepad.exe       3432   1352    ...  ← Both launched from explorer.exe</span>
+0x...        WinRAR.exe        ...    1352    ...</pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>Two notepad.exe processes (PID 3736 and 3432)</strong> — a user normally has one Notepad open at most. Two open simultaneously is unusual, especially in the context of a suspected data exfiltration event</li>
+    <li>Both are children of <code>explorer.exe</code> — meaning the user launched them via double-click from the desktop. This is expected if someone opened two text files to read them side-by-side</li>
+    <li>The key question: what files did those two Notepad instances have open? The flat list cannot answer that. Step 3 can.</li>
+    <li>Also note: no <code>python.exe</code> running. The script has already been executed and terminated. Only its output (<code>vip.txt</code>) and the script file itself remain on disk — and in memory via filehandles</li>
+  </ul>
+</div>
+
+
+<!-- STEP 3 -->
+<div class="divider" id="step3" style="margin-top:28px">STEP 3 — READ THE COMMAND HISTORY</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to find out</div>
+  <ul>
+    <li>Every process stores its launch command in memory — including the arguments that were passed to it</li>
+    <li>When Notepad opens a file, the filename becomes part of the command: <code>NOTEPAD.EXE C:\Users\hello\Desktop\evilscript.py</code></li>
+    <li>This plugin will reveal exactly which files the two Notepad instances had open — without having to look at the hard drive at all</li>
+    <li>This is one of the most underrated Volatility plugins for insider threat investigations: it tells you what the user was reading and editing at the exact moment of capture</li>
+  </ul>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📋</div><div><div class="ch-title">What cmdline actually shows</div><div class="ch-sub">Process arguments, not shell history</div></div></div>
+  <div class="concept-body">
+    <p>Unlike the Windows command prompt history (which you would get with the <code>cmdscan</code> or <code>consoles</code> plugin), <code>cmdline</code> reads the <code>PEB</code> (Process Environment Block) of each process — the kernel structure that stores how the process was invoked, including its full argument list.</p>
+    <p>This is separate from shell history. Even if the user used PowerShell to run something and then closed it, the running processes that are still alive will have their argument strings in their PEB. A Notepad window that is still open will always show what file it is editing — even if the user has tried to hide the file since.</p>
+  </div>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Show command line arguments for all processes</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Kali Terminal</div><div class="tag linux">LINUX</div></div>
+      <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 cmdline</pre>
+    </div>
+    <div class="box tip" style="margin-top:9px">
+      <div class="bx-label">💡 Focus on the Notepad PIDs</div>
+      <p>The output is long. Use <code>grep -A 3 "notepad"</code> to filter: add <code>| grep -A 3 -i notepad</code> to the end of the command. Or pipe to a file and search it in a text editor.</p>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Key section of output — the two Notepad processes</div><div class="tag out">OUTPUT</div></div>
+  <pre>...
+<span class="hl">notepad.exe pid:   3736</span>
+<span class="hl-p">Command line : "C:\Windows\system32\NOTEPAD.EXE" C:\Users\hello\Desktop\evilscript.py</span>
+************************************************************************
+<span class="hl">notepad.exe pid:   3432</span>
+<span class="hl-p">Command line : "C:\Windows\system32\NOTEPAD.EXE" C:\Users\hello\Desktop\vip.txt</span>
+...</pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for — and what it tells us</div>
+  <ul>
+    <li><strong>PID 3736 has evilscript.py open</strong> — the attacker (or the script itself) was viewing the Python script in Notepad. This is the encryption code we need to analyse</li>
+    <li><strong>PID 3432 has vip.txt open</strong> — the encrypted output file was being viewed, likely to verify the encryption had worked correctly</li>
+    <li>Both files are on the Desktop under the user profile <code>hello</code> — so we know the exact paths for the filesystem scan in Step 4</li>
+    <li>These two files are the artefacts of the attack. We now have their names and locations. The next step is to find their memory handles and pull them out.</li>
+  </ul>
+</div>
+
+<!-- FINDING 1 -->
+<div class="flag-box" id="finding1">
+  <div class="fb-label">⚑ Finding 1 — Two Suspicious Files Identified</div>
+  <div class="fb-val">
+    evilscript.py — encryption script, open in Notepad (PID 3736)<br>
+    Path: C:\Users\hello\Desktop\evilscript.py<br><br>
+    vip.txt — encrypted output file, open in Notepad (PID 3432)<br>
+    Path: C:\Users\hello\Desktop\vip.txt
+  </div>
+  <div class="fb-why">
+    <strong>Forensic significance:</strong> The user was actively reviewing both the script and its encrypted output at the moment of capture. This is consistent with someone verifying that the encryption worked correctly before exiting. The memory dump captured them mid-review — exactly the kind of volatile evidence that disappears the moment the machine is shut down. Neither Notepad window's content would appear in standard log analysis.
+  </div>
+</div>
+
+
+<!-- STEP 4 -->
+<div class="divider" id="step4" style="margin-top:28px">STEP 4 — FIND FILES IN MEMORY</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to find out</div>
+  <ul>
+    <li>We know the filenames. Now we need to find their <strong>physical addresses in memory</strong> — the offset values needed to extract them</li>
+    <li><code>filescan</code> scans the Windows file object pool in memory and lists every file that had an open handle at time of capture</li>
+    <li>We want the offsets (hex addresses) for: <code>evilscript.py</code>, <code>vip.txt</code>, and — critically — any JPEG on the Desktop</li>
+  </ul>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🗂</div><div><div class="ch-title">Why filescan finds files even if they were "deleted"</div><div class="ch-sub">File objects in the Windows kernel persist beyond deletion</div></div></div>
+  <div class="concept-body">
+    <p>When a Windows process opens a file, the kernel creates a <strong>File Object</strong> — a kernel-mode data structure that holds a reference to that file. This object persists in the kernel object pool as long as any process has the file open, even if the file has been deleted from the filesystem.</p>
+    <p>If the attacker deleted <code>evilscript.py</code> but forgot to close Notepad, the File Object for the script is still in memory. <code>filescan</code> scans the pool allocator for File Object signatures and lists them all. The offset it returns is the address of that File Object — which <code>dumpfiles</code> then uses to extract the file's actual data.</p>
+    <p>This technique can recover files that were deleted from disk hours before the dump — as long as something kept them open in memory.</p>
+  </div>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Find all three files we need</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Command 1 — find the Python script</div><div class="tag linux">LINUX</div></div>
+      <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 filescan | grep -i "evilscript"</pre>
+    </div>
+    <div class="code-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Command 2 — find the encrypted text file</div><div class="tag linux">LINUX</div></div>
+      <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 filescan | grep -i "vip.txt"</pre>
+    </div>
+    <div class="code-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Command 3 — find JPEG images on the system</div><div class="tag linux">LINUX</div></div>
+      <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 filescan | grep -i ".jpeg"</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 Run filescan once, grep multiple times</div>
+      <p>filescan is slow — it scans the entire memory pool. Save the output to a file first: add <code>&gt; ~/Desktop/lab3_filescan.txt</code> to the first run. Then grep against that file for each subsequent search with <code>grep -i "term" ~/Desktop/lab3_filescan.txt</code>.</p>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Output — offsets for each file (your offsets may differ slightly)</div><div class="tag out">OUTPUT</div></div>
+  <pre><span class="hl-v">0x000000003de1b5f0</span>   8  0  R--rw-  \Device\HarddiskVolume2\Users\hello\Desktop\evilscript.py.py
+<span class="hl-v">0x000000003e727e50</span>   8  0  -W-rw-  \Device\HarddiskVolume2\Users\hello\Desktop\vip.txt
+<span class="hl-v">0x0000000004f34148</span>   2  0  RW----  \Device\HarddiskVolume2\Users\hello\Desktop\suspision1.jpeg</pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for — and a key detail</div>
+  <ul>
+    <li>The <strong>first column is the memory offset</strong> — write these three down. They are the addresses you pass to <code>dumpfiles</code> in Step 5</li>
+    <li><strong>evilscript.py.py</strong> — note the double <code>.py</code> extension. This is an artefact of how the script was saved. The actual file is still a valid Python script — the double extension is just a naming quirk</li>
+    <li><strong>suspision1.jpeg</strong> — this is the image file mentioned in the case briefing. Note the deliberate misspelling of "suspicion" in the filename — chosen by the attacker to make the file name look odd, perhaps as a decoy. We will extract it in Step 5 and process it in Step 7</li>
+    <li>Write down all three offsets exactly as shown — including the leading <code>0x</code></li>
+  </ul>
+</div>
+
+
+<!-- STEP 5 -->
+<div class="divider" id="step5" style="margin-top:28px">STEP 5 — EXTRACT THE FILES</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to do</div>
+  <ul>
+    <li>Use the offsets from Step 4 to extract the actual file content from memory to your output directory</li>
+    <li><code>dumpfiles</code> reads the File Object at the given offset and writes the file's data section to disk</li>
+    <li>You will end up with three files to work with: the Python script, the encrypted text, and the JPEG</li>
+  </ul>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run these</div><div class="ch-desc">Extract all three files to output directory</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Extract evilscript.py (use your actual offset)</div><div class="tag linux">LINUX</div></div>
+      <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 \
+  dumpfiles -Q 0x000000003de1b5f0 -D ~/Desktop/lab3_output/ -n</pre>
+    </div>
+    <div class="code-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Extract vip.txt (use your actual offset)</div><div class="tag linux">LINUX</div></div>
+      <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 \
+  dumpfiles -Q 0x000000003e727e50 -D ~/Desktop/lab3_output/ -n</pre>
+    </div>
+    <div class="code-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Extract suspision1.jpeg (use your actual offset)</div><div class="tag linux">LINUX</div></div>
+      <pre>python2.7 vol.py -f ~/Desktop/MemoryDump_Lab3.raw --profile=Win7SP1x86_23418 \
+  dumpfiles -Q 0x0000000004f34148 -D ~/Desktop/lab3_output/ -n</pre>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Expected output for each dumpfiles run</div><div class="tag out">OUTPUT</div></div>
+  <pre>Volatility Foundation Volatility Framework 2.6.1
+DataSectionObject 0x3de1b5f0  None  \Device\HarddiskVolume2\...\evilscript.py.py
+<span class="hl">OK: file.None.0x84xxxxxx.evilscript.py.py.dat</span></pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">After extraction — rename the files</div>
+  <ul>
+    <li>Navigate to <code>~/Desktop/lab3_output/</code>. You will see files with long names like <code>file.None.0x....dat</code> — these are your extracted files</li>
+    <li>Rename them for convenience: the <code>evilscript</code> file → <code>evilscript.py</code>, the <code>vip</code> file → <code>vip.txt</code>, the jpeg file → <code>suspision1.jpeg</code></li>
+    <li>Run <code>cat ~/Desktop/lab3_output/vip.txt</code> to see the encrypted content — it will look like base64 but decrypt to garbled text</li>
+    <li>Run <code>cat ~/Desktop/lab3_output/evilscript.py</code> to read the encryption logic — this is what Step 6 analyses</li>
+  </ul>
+</div>
+
+
+<!-- STEP 6 -->
+<div class="divider" id="step6" style="margin-top:28px">STEP 6 — REVERSE THE ENCRYPTION</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to do</div>
+  <ul>
+    <li>Read the Python script to understand what it did to the plaintext</li>
+    <li>Identify the XOR key used to encrypt the original string</li>
+    <li>Use CyberChef to reverse both operations (Base64 decode → XOR with key) and recover the plaintext</li>
+    <li>The recovered plaintext is the first half of the flag</li>
+  </ul>
+</div>
+
+<h3 class="sub">The encryption script — reading evilscript.py</h3>
+
+<div class="code-block violet-block">
+  <div class="cb-top"><div class="lbl">Contents of evilscript.py — extracted from memory</div><div class="tag py">PYTHON</div></div>
+  <pre>import sys
+import string
+
+def xor(s):
+<span class="hl-v">    a = ''.join(chr(ord(i) ^ 3) for i in s)</span>   ← XOR key is 3
+    return a
+
+def encoder(x):
+<span class="hl-v">    return x.encode("base64")</span>                   ← then base64-encode
+
+if __name__ == "__main__":
+    f = open("C:\\Users\\hello\\Desktop\\vip.txt", "w")
+    arr = sys.argv[1]           ← takes the secret string as a command-line argument
+    arr = encoder(xor(arr))     ← XOR first, THEN base64
+    f.write(arr)
+    f.close()</pre>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🔐</div><div><div class="ch-title">Understanding what the script did</div><div class="ch-sub">And how to reverse it step by step</div></div></div>
+  <div class="concept-body">
+    <p>The script takes a secret string as a command-line argument, XORs every character with the integer <strong>3</strong>, and then base64-encodes the result before writing it to <code>vip.txt</code>.</p>
+    <p>To reverse this, you do the operations in the <strong>opposite order</strong>: first base64-decode the content of <code>vip.txt</code>, then XOR every byte of the result with key <strong>3</strong> again. XOR is its own inverse — XORing twice with the same key returns the original value.</p>
+    <p>You do not need to write any code. CyberChef has a "From Base64" operation and an "XOR" operation. Chain them in reverse order and the plaintext appears.</p>
+  </div>
+</div>
+
+<div class="analogy">
+  <div class="an-label">// Analogy — XOR is reversible</div>
+  XOR with a fixed key is like a lock where the key both locks and unlocks. If you press A XOR 3, you get B. If you then press B XOR 3, you get A back. This is why XOR is so common in simple encryption — and why it is trivially broken when the key is known or can be brute-forced.
+</div>
+
+<h3 class="sub">Using CyberChef to decrypt</h3>
+
+<div class="setup-step">
+  <div class="setup-step-head">
+    <div class="sn amber-n">CyberChef</div>
+    <div class="st-desc">Reverse the encryption — step by step</div>
+  </div>
+  <div class="setup-step-body">
+    <p>Open <code>https://gchq.github.io/CyberChef/</code> in your browser. Then:</p>
+    <div class="roadmap" style="margin:14px 0 10px;border-left-color:rgba(245,158,11,0.3)">
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="color:var(--amber);min-width:30px">1</div><div><div class="rm-title" style="font-size:14px">Paste the content of vip.txt into the Input box</div><div class="rm-desc">It will look like: <code>am1gd2V4M20wXGs3b2U=</code> — a base64-looking string</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="color:var(--amber);min-width:30px">2</div><div><div class="rm-title" style="font-size:14px">Add operation: From Base64</div><div class="rm-desc">Drag "From Base64" from the operations panel to the recipe. Leave settings as default.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="color:var(--amber);min-width:30px">3</div><div><div class="rm-title" style="font-size:14px">Add operation: XOR</div><div class="rm-desc">Set Key to <code>03</code> (hex). Set Scheme to <code>Standard</code>. The key is 3 in decimal = 0x03 in hex.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="color:var(--amber);min-width:30px">4</div><div><div class="rm-title" style="font-size:14px">Read the Output box</div><div class="rm-desc">The plaintext first half of the flag should appear. It begins with <code>inctf{</code></div></div></div>
+    </div>
+    <div class="box tip">
+      <div class="bx-label">💡 XOR brute force if key is unknown</div>
+      <p>In this case the script tells us the key is 3. In a real case you would not always have the script. CyberChef's <strong>"XOR Brute Force"</strong> operation tries all 256 possible single-byte keys and shows you the most readable result — try it to see how quickly a single-byte XOR falls to brute force.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FINDING 2 -->
+<div class="flag-box" id="finding2">
+  <div class="fb-label">⚑ Finding 2 — Flag Part 1 Recovered</div>
+  <div class="fb-val">
+    Source: vip.txt (encrypted) + evilscript.py (decryption logic)<br>
+    Method: Base64 decode → XOR with key 0x03<br>
+    Flag Part 1: inctf{0n3_h4lf   ← first half ends mid-word (this is intentional)<br>
+    <br>
+    ⚠ This partial flag is also the passphrase for the steghide extraction in Step 7
+  </div>
+  <div class="fb-why">
+    <strong>Forensic significance:</strong> The encryption was trivially reversible because the script itself was recoverable from memory. If the attacker had executed the script, deleted both files, and closed the Notepad windows before the dump was taken, neither file would have appeared in the File Object pool. The capture was made at precisely the right moment — when both files were still open in Notepad, giving us the handles needed to extract them via filescan + dumpfiles.
+  </div>
+</div>
+
+
+<!-- STEP 7 -->
+<div class="divider" id="step7" style="margin-top:28px">STEP 7 — EXTRACT HIDDEN DATA FROM THE JPEG</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to do</div>
+  <ul>
+    <li>The JPEG image (<code>suspision1.jpeg</code>) extracted in Step 5 has data hidden inside it using steganography</li>
+    <li>The passphrase for the hidden content is the first half of the flag — the string you recovered in Step 6</li>
+    <li>Use <code>steghide extract</code> to pull the hidden file out of the image</li>
+    <li>The extracted file contains the second half of the flag</li>
+  </ul>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🖼</div><div><div class="ch-title">What is steganography and why does it matter forensically?</div><div class="ch-sub">Hiding data in plain sight — inside ordinary-looking files</div></div></div>
+  <div class="concept-body">
+    <p>Steganography is the practice of hiding a message inside another, innocent-looking file in a way that is not visible to casual inspection. The word comes from the Greek for "hidden writing." Unlike encryption (which scrambles data so it is unreadable), steganography hides the fact that a message exists at all.</p>
+    <p>A JPEG image has redundancy in its pixel data — the least-significant bits of pixel values can be modified without any perceptible change to the image. <code>steghide</code> exploits this by embedding a payload (any file) across those least-significant bits. The image looks completely normal when viewed in an image viewer.</p>
+    <p>In a forensic context: an investigator who only looked at the image visually would never suspect it contained the second half of an attacker's flag. Only memory forensics — finding the image in memory, extracting it, and running steghide — reveals the hidden content. The passphrase requirement adds a second layer: even if an analyst found the image, they would need the XOR-decrypted key to extract it.</p>
+  </div>
+</div>
+
+<div class="analogy">
+  <div class="an-label">// Analogy — steganography vs encryption</div>
+  Encryption is a locked safe — everyone can see the safe exists, but they cannot open it. Steganography is a message written in invisible ink on a postcard — no one knows there is a message at all. The attacker here used both: encrypting the flag half in vip.txt (locked safe) and hiding the second half in the JPEG (invisible ink). Recovering it required finding the safe's contents first, then using that to read the invisible ink.
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill green">Run this</div><div class="ch-desc">Extract hidden data from the JPEG</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Kali Terminal — from lab3_output directory</div><div class="tag tool">STEGHIDE</div></div>
+      <pre>cd ~/Desktop/lab3_output/
+
+# Rename the dumped JPEG first if you haven't already
+# (it will have a long name from dumpfiles — rename it to suspision1.jpeg)
+
+steghide extract -sf suspision1.jpeg</pre>
+    </div>
+    <div class="code-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">When prompted for passphrase — enter the first flag half</div><div class="tag out">OUTPUT</div></div>
+      <pre>Enter passphrase: <span class="hl-p">inctf{0n3_h4lf</span>
+<span class="hl">wrote extracted data to "secret text"</span></pre>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Read the extracted file</div><div class="tag linux">LINUX</div></div>
+  <pre>cat "secret text"</pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>The extracted file is named "secret text"</strong> — this is what steghide writes when it extracts successfully</li>
+    <li>Its contents are the second half of the flag: <code>_1s_n0t_3n0ugh}</code></li>
+    <li><strong>Full flag:</strong> Combine both halves: <code>inctf{0n3_h4lf_1s_n0t_3n0ugh}</code></li>
+    <li>If steghide says "could not extract any data" — double-check the passphrase. It is case-sensitive and must match the exact string you recovered from vip.txt, including the opening <code>inctf{</code></li>
+  </ul>
+</div>
+
+<!-- FINDING 3 -->
+<div class="flag-box" id="finding3">
+  <div class="fb-label">⚑ Finding 3 — Full Flag Recovered via Steganography</div>
+  <div class="fb-val">
+    Hidden in: suspision1.jpeg (extracted from memory address 0x0000000004f34148)<br>
+    Method: steghide with passphrase = Flag Part 1<br>
+    Flag Part 2: _1s_n0t_3n0ugh}<br>
+    <br>
+    Complete flag: inctf{0n3_h4lf_1s_n0t_3n0ugh}
+  </div>
+  <div class="fb-why">
+    <strong>Forensic significance:</strong> The attacker built a two-stage evidence chain: the first piece requires memory forensics and crypto analysis; the second requires the first as its key. This is a deliberate anti-forensics design. An investigator who found only the JPEG on the hard drive and did not have the first flag half would hit a dead end. The memory dump made both stages recoverable because it captured the open file handles for all three artefacts simultaneously — evilscript.py, vip.txt, and the JPEG — before the user had a chance to close and clear them.
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     RECAP
+══════════════════════════════ -->
+<div class="divider" id="recap">📋 WHAT DID THIS INVESTIGATION DEMONSTRATE?</div>
+
+<div class="recap-grid">
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(124,58,237,0.22);border-left:4px solid var(--violet)">
+    <div class="rc-title" style="color:var(--violet-l)">1 — cmdline reveals what the user was doing at time of capture</div>
+    <div class="rc-body">Process arguments are stored in the PEB and persist in memory as long as the process is alive. Two Notepad windows with specific files open told us exactly what the attacker was reviewing. This would not appear in any log file or disk artefact — it is purely volatile intelligence.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(236,72,153,0.22);border-left:4px solid var(--pink)">
+    <div class="rc-title" style="color:var(--pink-l)">2 — filescan recovers files that may have been deleted from disk</div>
+    <div class="rc-body">Windows File Objects persist in the kernel pool as long as any process has the file open. Even if an attacker deletes a file immediately after using it, if they forget to close the handle (close the Notepad window), it is recoverable. The timing of capture relative to the user's actions is the difference between finding three artefacts and finding none.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,0.22);border-left:4px solid var(--amber)">
+    <div class="rc-title" style="color:var(--amber-l)">3 — Single-byte XOR is trivially broken with the script in hand</div>
+    <div class="rc-body">The attacker's encryption was only as strong as the secrecy of both the key and the algorithm. Storing the script in a Notepad window at time of capture gave us both. Even without the script, a single-byte XOR key can be brute-forced in 256 attempts — CyberChef's XOR Brute Force does this automatically. In real incidents, finding the encryption logic in memory is what separates a recovered plaintext from a permanently lost secret.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(34,211,238,0.22);border-left:4px solid var(--cyan)">
+    <div class="rc-title" style="color:var(--cyan)">4 — Steganography requires the right tool and the right key — both are findable in memory</div>
+    <div class="rc-body">Steghide-embedded data in a JPEG is invisible to any standard file viewer. Without knowing to look for it and without the passphrase, the second flag half would be completely hidden inside an ordinary-looking image. The memory dump gave us the image file AND the decrypted first half that served as its passphrase. Neither piece alone was sufficient — the investigation required chaining them together.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(16,185,129,0.22);border-left:4px solid var(--green)">
+    <div class="rc-title" style="color:var(--green-l)">5 — Multi-hop evidence chains are the norm in sophisticated attacks</div>
+    <div class="rc-body">No single plugin or single artefact told the complete story. pslist flagged the anomaly. cmdline identified the files. filescan found the handles. dumpfiles extracted the content. CyberChef reversed the crypto. steghide extracted the hidden payload. Each step depended on the previous one — which is exactly how attackers design their evidence trails. Real investigations always require this kind of multi-source correlation.</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     QUIZ
+══════════════════════════════ -->
+<div class="divider amber-d" id="quiz">📝 KNOWLEDGE CHECK</div>
+
+<p style="color:var(--muted);font-size:14px;font-style:italic;margin-bottom:20px">Five questions covering the techniques from this workshop. Each question has one correct answer — read the explanation after each to consolidate the concept.</p>
+
+<div class="quiz-progress">
+  <span class="qp-lbl">Progress</span>
+  <div class="qp-dot" id="dot-0"></div>
+  <div class="qp-dot" id="dot-1"></div>
+  <div class="qp-dot" id="dot-2"></div>
+  <div class="qp-dot" id="dot-3"></div>
+  <div class="qp-dot" id="dot-4"></div>
+</div>
+
+<!-- Q1 -->
+<div class="qcard" id="qc-0">
+  <div class="qcard-head"><div class="q-tag">Question 1</div><div class="q-text">The <code>cmdline</code> plugin reveals that PID 3736 has <code>evilscript.py</code> open in Notepad. What exactly is this plugin reading, and why does this differ from reading the Windows command prompt history?</div></div>
+  <div class="q-opts" id="qo-0">
+    <button class="q-opt" onclick="ans(0,0,false)"><span class="opt-let">A</span><span class="opt-txt">It reads the command history stored by cmd.exe in the Windows registry, which logs every command run in a shell session.</span></button>
+    <button class="q-opt" onclick="ans(0,1,true)"><span class="opt-let">B</span><span class="opt-txt">It reads the Process Environment Block (PEB) of each running process — a kernel structure that stores how the process was launched, including its full argument list. This is independent of shell history and persists as long as the process is alive.</span></button>
+    <button class="q-opt" onclick="ans(0,2,false)"><span class="opt-let">C</span><span class="opt-txt">It reads the Windows Event Log, specifically the Process Creation events (ID 4688), which record every process start including arguments.</span></button>
+    <button class="q-opt" onclick="ans(0,3,false)"><span class="opt-let">D</span><span class="opt-txt">It reads the prefetch files stored on the hard drive, which Windows uses to speed up application launches and records what arguments were last used.</span></button>
+  </div>
+  <div class="q-fb" id="qf-0"></div>
+</div>
+
+<!-- Q2 -->
+<div class="qcard" id="qc-1">
+  <div class="qcard-head"><div class="q-tag">Question 2</div><div class="q-text">The attacker deleted <code>evilscript.py</code> from the Desktop before the memory dump was taken, but <code>filescan</code> still finds it and <code>dumpfiles</code> can extract it. Why?</div></div>
+  <div class="q-opts" id="qo-1">
+    <button class="q-opt" onclick="ans(1,0,false)"><span class="opt-let">A</span><span class="opt-txt">Windows automatically places deleted files in the Recycle Bin and Volatility scans the Recycle Bin's memory-mapped area for recovered content.</span></button>
+    <button class="q-opt" onclick="ans(1,1,false)"><span class="opt-let">B</span><span class="opt-txt">Volatility scans the NTFS Master File Table (MFT) which keeps deleted file entries for up to 30 days before overwriting them.</span></button>
+    <button class="q-opt" onclick="ans(1,2,true)"><span class="opt-let">C</span><span class="opt-txt">The Windows kernel created a File Object in the kernel pool when Notepad opened the script. This object persists as long as any process holds an open handle to the file. Because Notepad was never closed, the File Object remained in the pool — visible to filescan and usable by dumpfiles — even after the file was deleted from the filesystem.</span></button>
+    <button class="q-opt" onclick="ans(1,3,false)"><span class="opt-let">D</span><span class="opt-txt">Volatility caches a copy of every file it encounters in a dedicated memory region, so any file opened since the last boot can be recovered regardless of current handle status.</span></button>
+  </div>
+  <div class="q-fb" id="qf-1"></div>
+</div>
+
+<!-- Q3 -->
+<div class="qcard" id="qc-2">
+  <div class="qcard-head"><div class="q-tag">Question 3</div><div class="q-text">The encryption script uses XOR with key 3, then base64. To recover the plaintext from <code>vip.txt</code>, you need to apply operations in a specific order. What is the correct decryption order and why?</div></div>
+  <div class="q-opts" id="qo-2">
+    <button class="q-opt" onclick="ans(2,0,false)"><span class="opt-let">A</span><span class="opt-txt">XOR with key 3 first, then Base64 decode — you must undo the XOR before the Base64 because XOR operates on raw bytes and base64 on text.</span></button>
+    <button class="q-opt" onclick="ans(2,1,true)"><span class="opt-let">B</span><span class="opt-txt">Base64 decode first, then XOR with key 3 — because encryption applied XOR first then Base64. Decryption reverses the order: undo the last operation first (Base64 decode), then undo the first operation (XOR). The XOR key is its own inverse, so applying XOR with key 3 a second time returns the original value.</span></button>
+    <button class="q-opt" onclick="ans(2,2,false)"><span class="opt-let">C</span><span class="opt-txt">The order does not matter for XOR and Base64 — both are commutative operations that can be applied in any sequence.</span></button>
+    <button class="q-opt" onclick="ans(2,3,false)"><span class="opt-let">D</span><span class="opt-txt">Base64 decode first, then XOR with key 253 (256 minus 3) — because XOR decryption requires the bitwise complement of the encryption key.</span></button>
+  </div>
+  <div class="q-fb" id="qf-2"></div>
+</div>
+
+<!-- Q4 -->
+<div class="qcard" id="qc-3">
+  <div class="qcard-head"><div class="q-tag">Question 4</div><div class="q-text">The attacker used steganography to hide the second flag half in a JPEG image. From a forensic investigation perspective, what makes this technique significant — and how did memory forensics overcome it?</div></div>
+  <div class="q-opts" id="qo-3">
+    <button class="q-opt" onclick="ans(3,0,false)"><span class="opt-let">A</span><span class="opt-txt">Steganography encrypts the JPEG file itself, so standard file viewers display an error instead of the image, making it obvious something is hidden.</span></button>
+    <button class="q-opt" onclick="ans(3,1,false)"><span class="opt-let">B</span><span class="opt-txt">The JPEG file was larger than a normal image, which any file system forensics tool would immediately flag as containing hidden content.</span></button>
+    <button class="q-opt" onclick="ans(3,2,true)"><span class="opt-let">C</span><span class="opt-txt">Steganography hides the existence of the payload — the image appears completely normal visually and to most automated tools. An investigator relying only on file system forensics would likely dismiss it. Memory forensics overcame this by: (1) extracting the JPEG from the kernel File Object pool, (2) recovering the steghide passphrase through the XOR reversal of vip.txt, and (3) chaining these two findings to extract the hidden file. Neither piece worked in isolation.</span></button>
+    <button class="q-opt" onclick="ans(3,3,false)"><span class="opt-let">D</span><span class="opt-txt">Steganography in JPEG files is detectable by antivirus software, so the significance is that the attacker chose to bypass antivirus by using an image format that AV tools skip.</span></button>
+  </div>
+  <div class="q-fb" id="qf-3"></div>
+</div>
+
+<!-- Q5 -->
+<div class="qcard" id="qc-4">
+  <div class="qcard-head"><div class="q-tag">Question 5</div><div class="q-text">Compare what you could have found by doing <em>only</em> a hard drive forensic image of this machine (no memory dump) versus what you found with the memory dump. What is the key difference?</div></div>
+  <div class="q-opts" id="qo-4">
+    <button class="q-opt" onclick="ans(4,0,false)"><span class="opt-let">A</span><span class="opt-txt">No difference — all the files (evilscript.py, vip.txt, suspision1.jpeg) are on disk anyway and a disk image would have found all of them identically.</span></button>
+    <button class="q-opt" onclick="ans(4,1,false)"><span class="opt-let">B</span><span class="opt-txt">Disk forensics would have found more, because it captures the full NTFS journal and registry hives which contain more historical activity than RAM.</span></button>
+    <button class="q-opt" onclick="ans(4,2,true)"><span class="opt-let">C</span><span class="opt-txt">A disk image would have found the files on disk (if not deleted) but would not have revealed what files were open in active processes at time of capture. The cmdline evidence — showing evilscript.py and vip.txt open in specific Notepad PIDs — exists only in memory. If the attacker had deleted the files and closed Notepad before shutdown, a disk image alone would have found nothing. The memory dump captured the investigation's most critical evidence: the open file handles and process arguments that linked the attacker's actions to the artefacts in real time.</span></button>
+    <button class="q-opt" onclick="ans(4,3,false)"><span class="opt-let">D</span><span class="opt-txt">A disk image would have found the steghide passphrase in the Windows password store, making the memory dump unnecessary for recovering the second flag half.</span></button>
+  </div>
+  <div class="q-fb" id="qf-4"></div>
+</div>
+
+<div class="scoreboard" id="scoreboard">
+  <div class="sb-title2">// Investigation Complete</div>
+  <div class="sb-score" id="sb-num"></div>
+  <div class="sb-of">CORRECT OUT OF 5</div>
+  <div class="sb-msg" id="sb-msg"></div>
+  <button class="sb-btn" onclick="resetQuiz()">↺ Try Again</button>
+</div>
+
+<div style="height:50px"></div>
+</main>
+</div>
+
+<footer>
+  <div class="f-left">
+    <div class="f-course">CC7007 · Workshop 5</div>
+    <div class="f-mod">Digital Investigation &amp; E-Discovery</div>
+  </div>
+  <div class="f-right">
+    <div class="f-name">The Evil's Den — MemLabs Lab 3</div>
+    <div class="f-sub">Volatility 2 · Win7SP1x86 · Script Recovery &amp; Steganography</div>
+  </div>
+</footer>
+
+<script>
+/* SIDEBAR NAV HIGHLIGHT */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      const m = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
+      if (m) m.classList.add('active');
+    }
+  });
+}, { rootMargin: '-10% 0px -70% 0px' });
+document.querySelectorAll('[id]').forEach(el => obs.observe(el));
+
+/* QUIZ */
+const CORRECT = [1, 2, 1, 2, 2];
+const TOTAL = 5;
+let score = 0;
+let done = new Array(TOTAL).fill(false);
+
+const FB = [
+  {
+    c: "Correct. The PEB (Process Environment Block) is a per-process kernel structure that stores, among other things, the full command line the process was started with. cmdline reads this directly from each process's memory. This is completely independent of shell history — you would use cmdscan or consoles for that. The PEB exists for every running process regardless of how it was launched: double-click, shell command, service start, or programmatic CreateProcess. As long as the process is alive, its argument list is in the PEB.",
+    w: "Not correct. cmdline does not read the Windows Event Log, the registry, or prefetch files — those are disk-based artefacts. cmdline reads the Process Environment Block (PEB), a per-process kernel data structure that records how that process was invoked, including the full argument string. This is a memory-only artefact. A process that is running right now has a PEB with its arguments — and Volatility can read it directly from RAM."
+  },
+  {
+    c: "Exactly right. When any process opens a file, the Windows kernel allocates a File Object in the non-paged pool — a kernel memory region that holds active kernel data structures. This File Object holds a reference-counted pointer to the file. The reference count decrements when a process closes its handle to the file. If the count reaches zero, the object is freed. If Notepad is still open with the file loaded, the reference count stays above zero — the File Object persists in the pool. filescan scans that pool for File Object signatures. dumpfiles reads the data through that object's pointer. Deleting the filesystem entry does not free the kernel object.",
+    w: "Not quite. The mechanism here is the Windows kernel File Object, not the Recycle Bin, the MFT, or a Volatility cache. When Notepad opens a file, a File Object is created in the kernel's non-paged pool — a reference-counted kernel data structure. Deleting the file from the filesystem removes the directory entry but does not touch the File Object, because the reference count (from Notepad's open handle) is still non-zero. filescan finds these objects by scanning the pool. This is why process handle state at time of capture matters enormously."
+  },
+  {
+    c: "Correct. Decryption always reverses the encryption steps in opposite order. The script encrypted by doing XOR then Base64. To decrypt you do the inverse operations in reverse sequence: Base64 decode (undo the last step), then XOR with key 3 (undo the first step). XOR is its own inverse — XOR(XOR(x, k), k) = x — so you apply the same key again. The order matters because Base64 operates on bytes that are already XOR'd: if you tried XOR first on the base64 string you would be XORing the base64 characters rather than the XOR'd bytes underneath them.",
+    w: "Not quite. Decryption reverses the encryption steps in opposite order. The script applied XOR first, then Base64. So decryption must reverse these: Base64 decode first (undoing the last encryption step), then XOR with key 3 (undoing the first). Crucially, the XOR key for decryption is the same as for encryption — XOR is self-inverse. Applying XOR with the same key twice returns the original value. There is no complement or subtraction involved."
+  },
+  {
+    c: "Correct. This is the core power of steganography from an attacker's perspective — and the challenge it presents to investigators. The image looks completely normal. No antivirus, no hash check, no file size heuristic would flag it. Standard file system forensics would find the JPEG, log it, and move on. Memory forensics overcame this in two ways simultaneously: filescan found the image's kernel File Object (giving us the file itself), and the parallel analysis of vip.txt + evilscript.py (also found via memory) provided the passphrase needed to unlock it. The memory dump was the single acquisition that made both chains possible.",
+    w: "Not quite. Steganography does not encrypt or corrupt the file — the image displays perfectly normally. It does not change the file size in an obviously suspicious way either. The significance is that the hidden payload is completely invisible to any standard inspection: the image looks and behaves like an ordinary JPEG. Memory forensics overcame this by recovering both the image file and the passphrase (from the XOR reversal of vip.txt) from the same dump. Without the passphrase — which required the memory dump to find — the steghide extraction would have been blocked."
+  },
+  {
+    c: "Correct. Disk forensics would have found the files if they were still on disk — but the cmdline evidence is the critical piece. The fact that PID 3736 had evilscript.py open and PID 3432 had vip.txt open at the moment of capture is information that exists only in RAM. If the attacker had closed Notepad and deleted the files before the machine was shut down, the disk image would have found nothing (or only forensic recovery of deleted file fragments). The memory dump captured the attacker mid-operation — files open, handles alive, PEB populated — creating a forensic record of their activity that no other acquisition type could have produced.",
+    w: "Not quite. The key difference is the cmdline evidence — what the processes had open at time of capture. A disk image shows what files exist (or existed) on disk. It cannot tell you that PID 3736 had evilscript.py open in Notepad at a specific moment, or that both files were being actively reviewed. That data exists only in the process PEB structures in RAM. If the attacker had deleted the files and closed Notepad before shutdown, the disk image would have found nothing, while the memory dump — taken while the process handles were still alive — preserved the complete evidence chain."
+  }
+];
+
+function ans(q, opt, correct) {
+  if (done[q]) return;
+  done[q] = true;
+
+  const opts = document.querySelectorAll(`#qo-${q} .q-opt`);
+  const fb   = document.getElementById(`qf-${q}`);
+  const card = document.getElementById(`qc-${q}`);
+  const dot  = document.getElementById(`dot-${q}`);
+
+  opts.forEach((b, i) => {
+    b.disabled = true;
+    if (i === opt) b.classList.add(correct ? 'correct' : 'wrong');
+    else if (i === CORRECT[q] && !correct) b.classList.add('correct');
+    else b.classList.add('dimmed');
+  });
+
+  fb.className = `q-fb show ${correct ? 'cfb' : 'wfb'}`;
+  fb.innerHTML = `<div class="fb-badge">${correct ? '✓ Correct' : '✗ Not quite'}</div>${FB[q][correct ? 'c' : 'w']}`;
+  card.classList.add(correct ? 'ac' : 'aw');
+  dot.classList.add(correct ? 'c' : 'w');
+
+  if (correct) score++;
+  if (done.every(Boolean)) showScore();
+}
+
+function showScore() {
+  const board = document.getElementById('scoreboard');
+  const num   = document.getElementById('sb-num');
+  const msg   = document.getElementById('sb-msg');
+  board.classList.add('show');
+  const pct = score / TOTAL;
+  num.textContent = `${score} / ${TOTAL}`;
+  num.style.color = pct === 1 ? 'var(--green)' : pct >= 0.6 ? 'var(--cyan)' : 'var(--amber)';
+  msg.textContent = pct === 1
+    ? "Perfect. You understood not just the commands but the forensic reasoning behind every step of this investigation."
+    : pct >= 0.6
+    ? "Good. Re-read the concept boxes and feedback for the questions you missed — the reasoning matters as much as the commands."
+    : "Go back through the investigation steps. Focus on why each plugin was used, not just what it shows.";
+  board.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  score = 0;
+  done = new Array(TOTAL).fill(false);
+  for (let i = 0; i < TOTAL; i++) {
+    document.getElementById(`qc-${i}`).classList.remove('ac','aw');
+    document.querySelectorAll(`#qo-${i} .q-opt`).forEach(b => {
+      b.disabled = false;
+      b.classList.remove('correct','wrong','dimmed');
+    });
+    const f = document.getElementById(`qf-${i}`);
+    f.className = 'q-fb'; f.innerHTML = '';
+    document.getElementById(`dot-${i}`).classList.remove('c','w');
+  }
+  document.getElementById('scoreboard').classList.remove('show');
+  document.getElementById('quiz').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
