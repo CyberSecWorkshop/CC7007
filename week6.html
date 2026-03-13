@@ -331,7 +331,7 @@ footer{background:var(--panel);border-top:2px solid var(--violet);margin-left:24
   <a href="#step4">Step 4 — Network Connections (windows.netscan)</a>
   <a class="flag-a" href="#finding2">⚑ Finding 2 — C2 Server Identified</a>
   <a href="#step5">Step 5 — Persistence (windows.filescan)</a>
-  <a href="#step6">Step 6 — Registry Run Keys</a>
+  <a href="#step6">Step 6 — Confirm Persistence Path</a>
   <a class="flag-a" href="#finding3">⚑ Finding 3 — Persistence Mechanisms</a>
   <a href="#step7">Step 7 — Build the Attack Timeline</a>
 
@@ -401,7 +401,7 @@ footer{background:var(--panel);border-top:2px solid var(--violet);margin-left:24
     <tr><td>Lab source</td><td>MemLabs GitHub (local download)</td><td class="hi">Lab VM (pre-loaded — no download needed)</td></tr>
     <tr><td>Threat type</td><td>Script-based — encrypt, hide, exfiltrate once</td><td class="hi">Persistent trojan — live C2, credential harvesting</td></tr>
     <tr><td>Primary objective</td><td>Recover flag via crypto reversal + steganography</td><td class="hi">Reconstruct full incident timeline with MITRE mapping</td></tr>
-    <tr><td>Key new technique</td><td>steghide + CyberChef XOR reversal</td><td class="hi">windows.netscan + windows.registry.printkey + timeline table</td></tr>
+    <tr><td>Key new technique</td><td>steghide + CyberChef XOR reversal</td><td class="hi">windows.netscan + windows.filescan (persistence) + timeline table</td></tr>
   </tbody>
 </table>
 
@@ -446,7 +446,7 @@ footer{background:var(--panel);border-top:2px solid var(--violet);margin-left:24
   <div class="rm-item"><div class="rm-step">Step 4</div><div><div class="rm-title">Capture network state — <em>windows.netscan</em></div><div class="rm-desc">Find TCP connections — established or recently closed — from the malicious process. The remote IP and port are your C2 indicators regardless of current state</div></div></div>
   <div class="rm-item rm-flag"><div class="rm-step">Finding 2</div><div><div class="rm-title">C2 server IP and port extracted from live memory</div><div class="rm-desc">MITRE ATT&CK: T1071 — Application Layer Protocol (C2)</div></div></div>
   <div class="rm-item"><div class="rm-step">Step 5</div><div><div class="rm-title">Locate malware files in memory — <em>windows.filescan</em></div><div class="rm-desc">Find where Amadey planted a copy of itself — typically the Temp folder and the System32 Tasks directory</div></div></div>
-  <div class="rm-item"><div class="rm-step">Step 6</div><div><div class="rm-title">Read persistence registry keys — <em>windows.registry.printkey</em></div><div class="rm-desc">Check the Windows Run key for a malicious entry that ensures Amadey restarts on login</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 6</div><div><div class="rm-title">Confirm persistence binary path — <em>windows.filescan</em></div><div class="rm-desc">Confirm lssass.exe in System32\Tasks — the persistence copy. Registry hive pages are not present in this dump; filescan is the evidence source.</div></div></div>
   <div class="rm-item rm-flag"><div class="rm-step">Finding 3</div><div><div class="rm-title">Two persistence mechanisms mapped — Run key + Tasks folder</div><div class="rm-desc">MITRE ATT&CK: T1547.001 (Run Key) + T1053.005 (Scheduled Task)</div></div></div>
   <div class="rm-item rm-tool"><div class="rm-step">Step 7</div><div><div class="rm-title">Compile the attack timeline</div><div class="rm-desc">Assemble all findings into a structured chronological table — the deliverable that IR teams, legal, and management actually use</div></div></div>
 </div>
@@ -570,7 +570,7 @@ NtMinorVersion  1
         <tr><td>Command lines</td><td><code>windows.cmdline</code></td><td><code>cmdline</code> — ambiguous, will error</td></tr>
         <tr><td>Network connections</td><td><code>windows.netscan</code></td><td><code>netscan</code> — ambiguous, will error</td></tr>
         <tr><td>File scan</td><td><code>windows.filescan</code></td><td><code>filescan</code> — ambiguous, will error</td></tr>
-        <tr><td>Registry key</td><td><code>windows.registry.printkey</code></td><td><code>printkey</code> — ambiguous, will error</td></tr>
+        <tr><td>Registry key</td><td><code>windows.registry.printkey</code></td><td><code>printkey</code> — ambiguous, will error. Note: hive pages must be in the captured memory for this to return output — not always the case</td></tr>
         <tr><td>Profile flag</td><td class="hi">Not needed — auto-detected</td><td><code>--profile=...</code> — Vol2 only, ignored in Vol3</td></tr>
       </tbody>
     </table>
@@ -860,77 +860,71 @@ grep -i "\\\\Tasks\\\\" ~/Desktop/amadey_output/filescan.txt</pre>
 
 
 <!-- STEP 6 -->
-<div class="divider" id="step6" style="margin-top:28px">STEP 6 — READ THE PERSISTENCE REGISTRY KEYS</div>
+<div class="divider" id="step6" style="margin-top:28px">STEP 6 — CONFIRM THE PERSISTENCE PATH</div>
 
 <div class="goal-box">
   <div class="gb-label">What we are trying to find out</div>
   <ul>
-    <li>Whether Amadey added an entry to the Windows Run registry key — the most common Windows persistence mechanism</li>
-    <li>The exact value name and data (the command it will execute on reboot)</li>
-    <li>Which user account's Run key was modified — this tells us the privilege level the malware achieved</li>
+    <li>Where exactly Amadey planted its persistence copy — we expect <code>C:\Windows\System32\Tasks\lssass.exe</code> based on known Amadey behaviour</li>
+    <li>Whether a second copy exists alongside the Temp staging copy — two copies at different paths confirms deliberate persistence placement, not accidental naming</li>
+    <li>The full filesystem path of the persistence binary — this is the artefact that must be removed during remediation</li>
   </ul>
 </div>
 
 <div class="concept">
-  <div class="concept-header"><div class="ch-icon">🗝</div><div><div class="ch-title">The Windows Run key — persistence 101</div><div class="ch-sub">Every value here executes automatically on user login</div></div></div>
+  <div class="concept-header"><div class="ch-icon">🗝</div><div><div class="ch-title">Why filescan is the evidence source here — not registry.printkey</div><div class="ch-sub">The registry hive pages are not present in this dump</div></div></div>
   <div class="concept-body">
-    <p>The Windows registry Run key (<code>HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run</code>) instructs Windows to execute the named commands whenever the current user logs in. This is legitimate — many Windows applications use it. It is also the most common malware persistence mechanism precisely because it is so ordinary.</p>
-    <p>When Amadey adds a Run key entry pointing to <code>C:\Windows\System32\Tasks\lssass.exe</code>, it ensures the malware restarts after every reboot — without needing a service, driver, or any elevated permissions. The key can be set with standard user rights.</p>
-    <p>Volatility 3's <code>windows.registry.printkey</code> reads registry hive data directly from memory, without needing to mount the registry from disk. The in-memory registry reflects the state at time of capture — including any modifications the malware made that have not yet been flushed to disk.</p>
+    <p>Amadey's persistence mechanism has two components: a binary dropped into <code>C:\Windows\System32\Tasks\</code>, and a Run registry key pointing to it. In a complete memory capture, <code>windows.registry.printkey</code> would let you read the Run key directly from the in-memory hive. However, registry hive pages are only in memory if Windows has recently accessed them — on this snapshot, the relevant HKCU hive pages were not in the captured pages, so <code>windows.registry.printkey</code> returns no output.</p>
+    <p>This is a real IR scenario: you do not always get every artefact from every technique. What we <em>can</em> confirm from this dump is the presence of the persistence binary in the Tasks folder via <code>windows.filescan</code>. The Run key's existence is corroborated by Amadey's known TTPs — it is documented behaviour, classified as T1547.001, even though we cannot directly evidence the registry value from this particular capture.</p>
+    <p>This is exactly why the timeline's confidence column matters: the Tasks binary path is High confidence (direct filescan evidence). The Run key is Medium confidence (known TTP, binary present at the expected target path, but registry value not directly recoverable from this dump).</p>
   </div>
 </div>
 
 <div class="cmd-wrap">
-  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Read the Run registry key for the current user</div></div>
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Confirm the persistence binary path via filescan</div></div>
   <div class="cmd-inner">
     <div class="code-block">
-      <div class="cb-top"><div class="lbl">HKCU Run key — current user (HKCU maps to the logged-in user's hive)</div><div class="tag vol3">VOL3</div></div>
-      <pre>vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem windows.registry.printkey --key "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"</pre>
+      <div class="cb-top"><div class="lbl">Search filescan output for both copies of lssass.exe — if not already saved from Step 5, run filescan again</div><div class="tag vol3">VOL3</div></div>
+      <pre>vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem windows.filescan | grep -i "lssass.exe"</pre>
     </div>
-    <div class="box tip" style="margin-top:9px">
-      <div class="bx-label">💡 Also check the system-wide Run key (HKLM)</div>
-      <p>The above command checks the user-level Run key. If Amadey gained elevated privileges, it may have written to <code>HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run</code> instead — this persists for all users on the machine. Run the same command with the HKLM path to check both.</p>
+    <div class="box warn" style="margin-top:9px">
+      <div class="bx-label">⚠️ If you saved filescan output in Step 5 — grep the saved file instead</div>
+      <p>Running filescan again takes 5–10 minutes. If you saved the output to <code>~/Desktop/amadey_output/filescan.txt</code> in Step 5, run <code>grep -i "lssass.exe" ~/Desktop/amadey_output/filescan.txt</code> instead — it will return in seconds.</p>
     </div>
   </div>
 </div>
 
 <div class="code-block output-block">
-  <div class="cb-top"><div class="lbl">Representative output — malicious Run key entry</div><div class="tag out">OUTPUT</div></div>
-  <pre>Hive         Key                                              Last Written
+  <div class="cb-top"><div class="lbl">Expected output — two copies of lssass.exe at different paths</div><div class="tag out">OUTPUT</div></div>
+  <pre>Offset(V)     Inode  Type  Filename
 ...
-Key: SOFTWARE\Microsoft\Windows\CurrentVersion\Run
-
-<span class="hl-r">Name        Type    Data</span>
-<span class="hl-r">lssass      REG_SZ  C:\Windows\System32\Tasks\lssass.exe</span>
-
-OneDriveSetup  REG_SZ  C:\Windows\System32\OneDriveSetup.exe
-...</pre>
+0xfa800...    --     File  \Device\HarddiskVolume2\Users\...\AppData\Local\Temp\...\lssass.exe
+<span class="hl-r">0xfa800...    --     File  \Device\HarddiskVolume2\Windows\System32\Tasks\lssass.exe</span></pre>
 </div>
 
 <div class="look-for">
   <div class="lf-head">What to look for</div>
   <ul>
-    <li><strong>An entry named "lssass" pointing to Tasks\lssass.exe</strong> — this is the persistence mechanism. On next login, Windows will execute this file automatically, re-establishing the C2 connection and the masqueraded process.</li>
-    <li><strong>The Tasks folder path as the execution target</strong> — this connects Finding 3 back to Step 5. The file you found in Tasks is not just present — it is wired into the Run key to guarantee execution on reboot.</li>
-    <li>Compare the malicious entry to the legitimate ones (like OneDriveSetup) — legitimate Run key entries point to standard Windows directories, not Tasks. The Tasks folder as an execution path is unusual and should be flagged regardless of the filename.</li>
+    <li><strong>lssass.exe in System32\Tasks</strong> — this is the persistence copy. This is the path Amadey's Run key points to. Its presence here is the evidence that persistence was planted, even though the registry key itself is not recoverable from this dump.</li>
+    <li><strong>Two distinct paths</strong> — Temp (execution/staging copy from Step 3) and Tasks (persistence copy). Two copies at different paths is deliberate — one runs now, one survives a reboot.</li>
+    <li><strong>Record the full Tasks path</strong> — this is the binary that must be deleted during remediation, along with the Run key entry (which must be removed from the registry on the live or imaged system).</li>
   </ul>
 </div>
 
 <!-- FINDING 3 -->
 <div class="flag-box" id="finding3">
-  <div class="fb-label">⚑ Finding 3 — Two Persistence Mechanisms Confirmed</div>
+  <div class="fb-label">⚑ Finding 3 — Persistence Confirmed via Binary Placement</div>
   <div class="fb-val">
-    Persistence 1 — Scheduled Task Location:<br>
-    File: C:\Windows\System32\Tasks\lssass.exe (found via windows.filescan)<br>
+    Persistence binary: C:\Windows\System32\Tasks\lssass.exe<br>
+    Evidence: windows.filescan — File Object in kernel pool<br>
+    Confidence: <strong>High</strong> (direct filescan evidence)<br>
     <br>
-    Persistence 2 — Registry Run Key:<br>
-    Key: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run<br>
-    Value name: lssass<br>
-    Value data: C:\Windows\System32\Tasks\lssass.exe<br>
-    Evidence: windows.registry.printkey — in-memory registry hive
+    Associated Run key: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run → lssass.exe<br>
+    Evidence: Amadey known TTP (T1547.001) — registry hive pages not present in this dump<br>
+    Confidence: <strong>Medium</strong> (corroborated by binary at expected target path; registry value not directly recoverable from this capture)
   </div>
   <div class="fb-why">
-    <strong>MITRE ATT&CK: T1547.001 — Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder.</strong> The attacker used the Run key to ensure the malware restarts on every login, pointing at the copy hidden in the Tasks folder. <strong>T1053.005 — Scheduled Task/Job: Scheduled Task</strong> is the secondary classification — placing an executable in the Tasks folder exploits the implicit trust Windows grants to that directory. The dual-persistence approach means removing only the Run key would leave the binary in place, and removing only the binary would leave the Run key pointing to a missing file — creating a forensic footprint that would still alert a defender doing registry analysis.
+    <strong>MITRE ATT&CK: T1053.005 — Scheduled Task/Job: Scheduled Task.</strong> Placing an executable in <code>C:\Windows\System32\Tasks\</code> exploits the implicit trust Windows grants to that directory — it is associated with legitimate scheduled task binaries and is writable without elevation. <strong>T1547.001 — Boot or Logon Autostart Execution: Registry Run Keys</strong> is the corroborating technique: Amadey is documented to add a Run key pointing to the Tasks binary, ensuring execution on every login. The registry value is not directly recoverable from this dump, but the binary at the Run key's known target path is confirmed. Remediation requires removing both — the Tasks binary and the Run key entry — on the live or mounted system.
   </div>
 </div>
 
@@ -1000,10 +994,10 @@ OneDriveSetup  REG_SZ  C:\Windows\System32\OneDriveSetup.exe
     </tr>
     <tr>
       <td>T-4 (after T-3)</td>
-      <td>Persistence confirmed — Run registry key entry added: HKCU\...\Run\lssass → Tasks\lssass.exe</td>
-      <td>windows.registry.printkey — in-memory registry hive</td>
+      <td>Persistence corroborated — Run registry key (HKCU\...\Run\lssass → Tasks\lssass.exe) inferred from known Amadey TTP; registry hive pages not present in this dump</td>
+      <td>Amadey threat intelligence (T1547.001) — registry not directly recoverable from this capture</td>
       <td class="mitre">T1547.001 — Registry Run Keys</td>
-      <td class="conf-hi">High</td>
+      <td class="conf-med">Medium</td>
     </tr>
     <tr>
       <td>T-5 (inferred)</td>
@@ -1050,7 +1044,7 @@ OneDriveSetup  REG_SZ  C:\Windows\System32\OneDriveSetup.exe
   </div>
   <div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,0.22);border-left:4px solid var(--amber)">
     <div class="rc-title" style="color:var(--amber-l)">3 — Dual persistence means dual eradication requirements</div>
-    <div class="rc-body">Amadey plants two persistence mechanisms intentionally. Remove the Run key and the binary survives in Tasks, ready to be re-executed. Remove the Tasks binary and the Run key points to a missing file, creating a forensic trace that alerts the defender — but the malware can redrop itself on next C2 connection. Complete remediation requires identifying and removing both before the machine reconnects to the network. The timeline made this clear.</div>
+    <div class="rc-body">Amadey plants two persistence mechanisms: the binary in Tasks (directly confirmed by filescan) and a Run key pointing to it (documented TTP, not directly recoverable from this dump's captured pages). Both must be removed during remediation — the binary first, then the Run key on the live or mounted system, before any network reconnection. This case also illustrates a real IR constraint: not every artefact is recoverable from every dump. The registry hive pages were simply not in the captured memory. Honest confidence labelling in the timeline — High for the binary, Medium for the Run key — is how you communicate that distinction without omitting the finding.</div>
   </div>
   <div class="recap-card" style="background:var(--card);border:1px solid rgba(34,211,238,0.22);border-left:4px solid var(--cyan)">
     <div class="rc-title" style="color:var(--cyan)">4 — Always use the full windows. plugin namespace</div>
