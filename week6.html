@@ -443,7 +443,7 @@ footer{background:var(--panel);border-top:2px solid var(--violet);margin-left:24
   <div class="rm-item"><div class="rm-step">Step 2</div><div><div class="rm-title">Map the process tree — <em>windows.pstree</em></div><div class="rm-desc">Vol3 renders parent-child process relationships directly. A process with a name one letter from lsass.exe is your first anomaly</div></div></div>
   <div class="rm-item rm-flag"><div class="rm-step">Finding 1</div><div><div class="rm-title">Fake lsass process identified — process masquerading confirmed</div><div class="rm-desc">MITRE ATT&CK: T1036.005 — Masquerading: Match Legitimate Name or Location</div></div></div>
   <div class="rm-item"><div class="rm-step">Step 3</div><div><div class="rm-title">Read process arguments — <em>windows.cmdline</em></div><div class="rm-desc">What path was the malware executed from? The executable path reveals its staging location on disk</div></div></div>
-  <div class="rm-item"><div class="rm-step">Step 4</div><div><div class="rm-title">Capture network state — <em>windows.netscan</em></div><div class="rm-desc">Find established outbound TCP connections from the malicious process. The remote IP and port are your C2 indicators</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 4</div><div><div class="rm-title">Capture network state — <em>windows.netscan</em></div><div class="rm-desc">Find TCP connections — established or recently closed — from the malicious process. The remote IP and port are your C2 indicators regardless of current state</div></div></div>
   <div class="rm-item rm-flag"><div class="rm-step">Finding 2</div><div><div class="rm-title">C2 server IP and port extracted from live memory</div><div class="rm-desc">MITRE ATT&CK: T1071 — Application Layer Protocol (C2)</div></div></div>
   <div class="rm-item"><div class="rm-step">Step 5</div><div><div class="rm-title">Locate malware files in memory — <em>windows.filescan</em></div><div class="rm-desc">Find where Amadey planted a copy of itself — typically the Temp folder and the System32 Tasks directory</div></div></div>
   <div class="rm-item"><div class="rm-step">Step 6</div><div><div class="rm-title">Read persistence registry keys — <em>windows.registry.printkey</em></div><div class="rm-desc">Check the Windows Run key for a malicious entry that ensures Amadey restarts on login</div></div></div>
@@ -742,9 +742,9 @@ grep -A 2 "lssass\|&lt;your_PID&gt;" ~/Desktop/amadey_output/cmdline.txt</pre>
 <div class="goal-box">
   <div class="gb-label">What we are trying to find out</div>
   <ul>
-    <li>Whether the malicious process had any active or recently-established TCP connections at time of capture</li>
+    <li>Whether the malicious process had any TCP connections — active or recently closed — recorded in the kernel pool at time of capture</li>
     <li>The remote IP address and port — your C2 server indicator of compromise (IOC)</li>
-    <li>The connection state — ESTABLISHED means live C2 at time of capture; CLOSE_WAIT or TIME_WAIT means it had recently communicated</li>
+    <li>The connection state — ESTABLISHED means live C2 at time of capture; CLOSED, CLOSE_WAIT, or TIME_WAIT means the connection recently completed. All states are forensically useful — the kernel object persists and still carries the foreign IP, port, and owning PID</li>
   </ul>
 </div>
 
@@ -753,7 +753,7 @@ grep -A 2 "lssass\|&lt;your_PID&gt;" ~/Desktop/amadey_output/cmdline.txt</pre>
   <div class="concept-body">
     <p>Windows maintains kernel objects for each TCP connection — <code>_TCP_ENDPOINT</code> structures in the network pool. These contain the source address, destination address, ports, protocol, state, and the PID of the owning process. <code>windows.netscan</code> scans the kernel pool for these objects and presents them in a readable table.</p>
     <p>Critically: netscan finds connections even if the process has since tried to hide them by closing the socket at the application layer, because the kernel pool object may not be immediately freed. It also finds connections from recently-terminated processes if the kernel object has not yet been reclaimed — this is the same pool persistence mechanism you saw with file handles in Workshop 5.</p>
-    <p>For the analyst: any ESTABLISHED connection from a process in the Temp folder to an external IP on an unusual port is a C2 indicator. Any connection from a process with a masqueraded name is a confirmed IOC.</p>
+    <p>For the analyst: any connection — ESTABLISHED or CLOSED — from a process in the Temp folder to an external IP on an unusual port is a C2 indicator. Any connection from a process with a masqueraded name is a confirmed IOC. A CLOSED state simply means the beacon cycle completed before the snapshot fired; the kernel object persists in the pool long enough to be recovered.</p>
   </div>
 </div>
 
@@ -774,32 +774,32 @@ grep "&lt;your_PID&gt;\|lssass" ~/Desktop/amadey_output/netscan.txt</pre>
   <div class="cb-top"><div class="lbl">Representative output — C2 connection</div><div class="tag out">OUTPUT</div></div>
   <pre>Offset     Proto  LocalAddr        LocalPort  ForeignAddr       ForeignPort  State        PID   Owner
 ...
-<span class="hl-r">0xfa800...  TCPv4  192.168.x.x      49XXX      185.215.XXX.XXX   80           ESTABLISHED  2852  lssass.exe</span>
+<span class="hl-r">0xfa800...  TCPv4  192.168.x.x      49XXX      185.215.XXX.XXX   80           CLOSED       2852  lssass.exe</span>
 ...</pre>
 </div>
 
 <div class="look-for">
   <div class="lf-head">What to look for</div>
   <ul>
-    <li><strong>ESTABLISHED connection on port 80 from lssass.exe</strong> — C2 over HTTP (port 80) is a common Amadey technique. Using port 80 blends into normal web traffic, making it harder to block at the firewall without disrupting legitimate browsing.</li>
+    <li><strong>CLOSED connection on port 80 from lssass.exe</strong> — C2 over HTTP (port 80) is a common Amadey technique. A CLOSED state means the beacon cycle completed before the snapshot was taken — Amadey beacons periodically, opens a connection, sends and receives, then closes the socket. The snapshot landed between cycles.</li>
     <li><strong>The foreign IP address</strong> — record this. It is the C2 server IOC. You can submit it to VirusTotal or abuse.ch for threat intelligence enrichment outside this workshop.</li>
-    <li><strong>State: ESTABLISHED</strong> — the malware was actively communicating at the moment the dump was taken. This is the strongest possible evidence of live C2.</li>
+    <li><strong>State: CLOSED</strong> — the kernel TCP object persists in the pool after the socket closes (the same pool persistence mechanism from Workshop 5). You still recover the foreign IP, port, and owning PID. The connection <em>did exist</em> — adjust your timeline wording to "recent C2 communication prior to capture" rather than "active at time of capture".</li>
     <li>Also check for any UDP connections — some Amadey variants use DNS over UDP for C2 channel establishment before switching to HTTP.</li>
   </ul>
 </div>
 
 <!-- FINDING 2 -->
 <div class="flag-box" id="finding2">
-  <div class="fb-label">⚑ Finding 2 — Live C2 Connection Identified</div>
+  <div class="fb-label">⚑ Finding 2 — C2 Connection Identified in Kernel Pool</div>
   <div class="fb-val">
     Source: lssass.exe (PID from Step 2) → Remote IP on port 80<br>
-    State: ESTABLISHED — active communication at time of dump<br>
+    State: CLOSED — beacon cycle completed before snapshot; kernel TCP object persisted in pool<br>
     Protocol: TCPv4 over HTTP (port 80) — blends with legitimate web traffic<br>
     IOC: Record the foreign IP from your netscan output for threat intel enrichment<br>
-    Evidence source: windows.netscan — kernel TCP_ENDPOINT object
+    Evidence source: windows.netscan — kernel TCP_ENDPOINT object (pool persistence)
   </div>
   <div class="fb-why">
-    <strong>MITRE ATT&CK: T1071.001 — Application Layer Protocol: Web Protocols.</strong> Using HTTP on port 80 for C2 is deliberate — it traverses most firewalls without triggering alerts because port 80 is expected on corporate networks. The combination of a masqueraded process name (Finding 1) and C2 over a permitted port (Finding 2) is a classic Amadey dual-evasion pattern. The memory dump caught it because the kernel TCP object was live at time of capture.
+    <strong>MITRE ATT&CK: T1071.001 — Application Layer Protocol: Web Protocols.</strong> Using HTTP on port 80 for C2 is deliberate — it traverses most firewalls without triggering alerts because port 80 is expected on corporate networks. The CLOSED state means Amadey had already completed a beacon cycle before the snapshot was taken — it beacons periodically rather than holding a permanent open connection. The kernel TCP object persisted in the pool after the socket closed, which is what netscan recovered. The combination of a masqueraded process name (Finding 1) and C2 over a permitted port (Finding 2) is a classic Amadey dual-evasion pattern.
   </div>
 </div>
 
@@ -986,8 +986,8 @@ OneDriveSetup  REG_SZ  C:\Windows\System32\OneDriveSetup.exe
     </tr>
     <tr>
       <td>T-2 (after T-1)</td>
-      <td>C2 Establishment — ESTABLISHED TCP connection from lssass.exe to [YOUR C2 IP]:80, active at time of capture</td>
-      <td>windows.netscan — kernel TCP_ENDPOINT object</td>
+      <td>C2 Activity — CLOSED TCP connection from lssass.exe to [YOUR C2 IP]:80 recovered from kernel pool; beacon cycle completed prior to capture</td>
+      <td>windows.netscan — kernel TCP_ENDPOINT object (pool persistence)</td>
       <td class="mitre">T1071.001 — Application Layer Protocol: Web</td>
       <td class="conf-hi">High</td>
     </tr>
@@ -1046,7 +1046,7 @@ OneDriveSetup  REG_SZ  C:\Windows\System32\OneDriveSetup.exe
   </div>
   <div class="recap-card" style="background:var(--card);border:1px solid rgba(236,72,153,0.22);border-left:4px solid var(--pink)">
     <div class="rc-title" style="color:var(--pink-l)">2 — Live memory catches what disk forensics misses</div>
-    <div class="rc-body">The ESTABLISHED C2 connection to the remote IP existed only in memory — it was active at time of capture and would not appear in any disk artefact. No log file on the machine would have recorded this in real time. The kernel TCP object in the network pool was the only evidence of live C2. Disk forensics conducted after network isolation would have found no connection evidence at all.</div>
+    <div class="rc-body">The C2 connection to the remote IP existed only in memory — the kernel TCP object persisted in the pool even after the socket closed, which is what netscan recovered. The CLOSED state tells you the beacon cycle completed before the snapshot was taken, but the evidence of the connection — the foreign IP, port, and owning PID — is still there. No disk artefact and no log file on the machine would have recorded this. Disk forensics conducted after network isolation would have found no connection evidence at all.</div>
   </div>
   <div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,0.22);border-left:4px solid var(--amber)">
     <div class="rc-title" style="color:var(--amber-l)">3 — Dual persistence means dual eradication requirements</div>
@@ -1105,7 +1105,7 @@ OneDriveSetup  REG_SZ  C:\Windows\System32\OneDriveSetup.exe
 
 <!-- Q3 -->
 <div class="qcard" id="qc-2">
-  <div class="qcard-head"><div class="q-tag">Question 3</div><div class="q-text">windows.netscan finds an ESTABLISHED TCP connection from lssass.exe to an external IP on port 80. The attacker chose port 80 (HTTP) rather than port 443 (HTTPS) or a non-standard high port. What is the strategic reason for this choice, and what additional detection challenge does it create?</div></div>
+  <div class="qcard-head"><div class="q-tag">Question 3</div><div class="q-text">windows.netscan finds a CLOSED TCP connection from lssass.exe to an external IP on port 80 — the beacon cycle completed before the snapshot was taken, but the kernel object persisted. The attacker chose port 80 (HTTP) rather than port 443 (HTTPS) or a non-standard high port. What is the strategic reason for this choice, and what additional detection challenge does it create?</div></div>
   <div class="q-opts" id="qo-2">
     <button class="q-opt" onclick="ans(2,0,false)"><span class="opt-let">A</span><span class="opt-txt">Port 80 was chosen because it is faster than HTTPS — the absence of TLS handshake overhead means the C2 beacon can operate at higher frequency without being throttled.</span></button>
     <button class="q-opt" onclick="ans(2,1,false)"><span class="opt-let">B</span><span class="opt-txt">Port 80 was chosen because Amadey cannot implement TLS encryption — it uses plaintext HTTP because its developers lacked the cryptographic implementation capability.</span></button>
