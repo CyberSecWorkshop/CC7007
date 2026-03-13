@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC7007 — Workshop 6: Amadey in Memory</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark:      #080B10;
+  --surface:   #0E1520;
+  --card:      #121A27;
+  --panel:     #070A0F;
+  --border:    rgba(255,255,255,0.07);
+  --violet:    #7C3AED;
+  --violet-l:  #A78BFA;
+  --violet-d:  #4C1D95;
+  --pink:      #EC4899;
+  --pink-l:    #F9A8D4;
+  --cyan:      #22D3EE;
+  --cyan-d:    #0891B2;
+  --green:     #10B981;
+  --green-l:   #6EE7B7;
+  --amber:     #F59E0B;
+  --amber-l:   #FDE68A;
+  --red:       #EF4444;
+  --red-l:     #FCA5A5;
+  --orange:    #F97316;
+  --text:      #CBD5E1;
+  --muted:     #64748B;
+  --white:     #F8FAFC;
+  --mono:      'JetBrains Mono', monospace;
+  --head:      'Syne', sans-serif;
+  --body:      'DM Sans', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.85;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--panel);border-right:1px solid rgba(124,58,237,0.18);overflow-y:auto;z-index:100;padding-bottom:80px}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid rgba(124,58,237,0.15);margin-bottom:4px}
+.sb-week{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--pink);display:block;margin-bottom:5px;text-transform:uppercase}
+.sb-title{font-family:var(--head);font-size:13px;font-weight:700;color:var(--violet-l);line-height:1.35}
+.nav-group{padding:12px 18px 3px;font-family:var(--mono);font-size:8px;letter-spacing:2.5px;color:rgba(100,116,139,0.5);text-transform:uppercase}
+.sidebar a{display:block;padding:5px 18px 5px 22px;font-size:12px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all .18s;line-height:1.4}
+.sidebar a:hover,.sidebar a.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(34,211,238,0.04)}
+.sidebar a.flag-a{color:#6EE7B7}
+.sidebar a.flag-a:hover,.sidebar a.flag-a.active{color:var(--green);border-left-color:var(--green);background:rgba(16,185,129,0.05)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1}
+.main{margin-left:240px;padding:0 48px 80px;max-width:980px;width:100%}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(150deg,#050709 0%,#100722 55%,#050709 100%);border-bottom:2px solid var(--violet);padding:54px 48px 46px;margin:0 -48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-40px;width:420px;height:420px;background:radial-gradient(circle,rgba(124,58,237,0.14),transparent 62%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-50px;left:80px;width:260px;height:260px;background:radial-gradient(circle,rgba(236,72,153,0.07),transparent 65%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.45);color:var(--violet-l);font-family:var(--mono);font-size:10px;letter-spacing:3px;padding:5px 14px;border-radius:3px;margin-bottom:20px;text-transform:uppercase}
+.hero h1{font-family:var(--head);font-size:48px;font-weight:800;color:var(--white);line-height:1.05;margin-bottom:14px}
+.hero h1 em{color:var(--violet-l);font-style:normal}
+.hero p.tagline{font-size:15px;color:var(--muted);font-weight:300;max-width:600px;margin-bottom:28px;line-height:1.75}
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted)}
+.chip b{color:var(--text);font-weight:500}
+.chip.hi b{color:var(--violet-l)}
+.chip.warn b{color:var(--amber)}
+.chip.cyan b{color:var(--cyan)}
+
+/* ── DIVIDERS ── */
+.divider{margin:52px 0 24px;padding:12px 22px 12px 26px;background:var(--panel);border:1px solid rgba(124,58,237,0.22);border-left:5px solid var(--violet);border-radius:0 8px 8px 0;font-family:var(--head);font-size:14px;font-weight:700;color:var(--violet-l);letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.divider.cyan-d{border-left-color:var(--cyan);color:var(--cyan)}
+.divider.green-d{border-left-color:var(--green);color:var(--green)}
+.divider.amber-d{border-left-color:var(--amber);color:var(--amber)}
+.divider.pink-d{border-left-color:var(--pink);color:var(--pink)}
+.divider.red-d{border-left-color:var(--red);color:var(--red-l)}
+.divider.purple-d{border-left-color:var(--violet);color:var(--violet-l)}
+
+h2.sec{font-family:var(--head);font-size:22px;font-weight:700;color:var(--violet-l);margin:30px 0 10px;border-bottom:1px solid rgba(124,58,237,0.2);padding-bottom:7px}
+h3.sub{font-family:var(--head);font-size:13px;font-weight:700;color:var(--pink);letter-spacing:1.5px;text-transform:uppercase;margin:20px 0 8px}
+p{margin-bottom:13px;font-size:14.5px;line-height:1.85}
+strong{color:var(--white);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;color:var(--cyan);background:rgba(34,211,238,0.08);padding:2px 7px;border-radius:3px}
+ul.normal{padding-left:22px;margin-bottom:14px}
+ul.normal li{margin-bottom:6px;font-size:14.5px;line-height:1.7}
+
+/* ── SCENARIO ── */
+.scenario-card{background:linear-gradient(135deg,#0B0E18,#130B20);border:1px solid rgba(236,72,153,0.35);border-left:5px solid var(--pink);border-radius:8px;padding:26px 30px;margin:16px 0;position:relative;overflow:hidden}
+.scenario-card::after{content:'🕵️';position:absolute;right:18px;top:14px;font-size:36px;opacity:.1}
+.sc-ref{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(236,72,153,0.5);margin-bottom:10px;text-transform:uppercase}
+.sc-body{font-size:14.5px;color:#C8C8C8;line-height:1.85}
+.sc-body p{color:#C8C8C8;font-size:14.5px;margin-bottom:10px}
+.sc-body p:last-child{margin:0}
+
+/* ── CONCEPT ── */
+.concept{background:var(--card);border:1px solid rgba(124,58,237,0.2);border-radius:10px;margin:16px 0;overflow:hidden}
+.concept-header{background:rgba(124,58,237,0.07);border-bottom:1px solid rgba(124,58,237,0.14);padding:13px 20px;display:flex;align-items:center;gap:12px}
+.concept-header .ch-icon{font-size:21px}
+.concept-header .ch-title{font-family:var(--head);font-size:16px;font-weight:700;color:var(--violet-l)}
+.concept-header .ch-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.concept-body{padding:18px 22px;font-size:14px;line-height:1.85;color:var(--text)}
+.concept-body p{font-size:14px;margin-bottom:10px}
+.concept-body p:last-child{margin:0}
+
+/* ── ANALOGY ── */
+.analogy{background:linear-gradient(135deg,rgba(124,58,237,0.07),rgba(124,58,237,0.02));border:1px solid rgba(124,58,237,0.28);border-radius:8px;padding:16px 20px;margin:13px 0;font-size:13.5px;color:var(--violet-l);line-height:1.7}
+.analogy .an-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--violet);text-transform:uppercase;margin-bottom:7px;font-weight:700}
+
+/* ── BOXES ── */
+.box{border-radius:8px;padding:15px 19px;margin:13px 0;font-size:13.5px;line-height:1.7}
+.box .bx-label{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;font-weight:700;display:flex;align-items:center;gap:7px}
+.box.tip{background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.22);color:var(--text)}
+.box.tip .bx-label{color:var(--cyan)}
+.box.warn{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.28);color:#FDE68A}
+.box.warn .bx-label{color:var(--amber)}
+.box.danger{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.28);color:var(--red-l)}
+.box.danger .bx-label{color:var(--red)}
+.box.success{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.28);color:var(--green-l)}
+.box.success .bx-label{color:var(--green)}
+.box.purple{background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.28);color:var(--violet-l)}
+.box.purple .bx-label{color:var(--violet-l)}
+.box p{margin:0 0 6px;font-size:13.5px;line-height:1.65}
+.box p:last-child{margin:0}
+.box strong{color:var(--white)}
+
+/* ── GOAL BOX ── */
+.goal-box{background:linear-gradient(135deg,rgba(245,158,11,0.06),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.32);border-radius:8px;padding:16px 20px;margin:15px 0}
+.goal-box .gb-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--amber);text-transform:uppercase;margin-bottom:10px;font-weight:700;display:flex;align-items:center;gap:8px}
+.goal-box .gb-label::before{content:'🎯'}
+.goal-box ul{list-style:none;padding:0}
+.goal-box ul li{font-size:13.5px;color:var(--amber-l);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(245,158,11,0.1)}
+.goal-box ul li:last-child{border:none}
+.goal-box ul li::before{content:'→';position:absolute;left:0;color:var(--amber)}
+
+/* ── COMMAND BLOCK ── */
+.cmd-wrap{margin:18px 0;border:1px solid rgba(124,58,237,0.2);border-radius:8px;overflow:hidden}
+.cmd-header{background:rgba(124,58,237,0.07);border-bottom:1px solid rgba(124,58,237,0.14);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.cmd-header .ch-pill{background:var(--violet);color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:3px 12px;border-radius:12px;flex-shrink:0}
+.cmd-header .ch-pill.green{background:var(--green)}
+.cmd-header .ch-pill.pink{background:var(--pink)}
+.cmd-header .ch-pill.amber{background:var(--amber);color:#1a0e00}
+.cmd-header .ch-desc{font-size:13px;color:var(--text);font-weight:500}
+.cmd-inner{padding:14px 18px;background:rgba(255,255,255,0.01)}
+
+/* ── CODE ── */
+.code-block{background:#050709;border:1px solid rgba(34,211,238,0.14);border-left:3px solid var(--cyan);border-radius:6px;overflow:hidden;margin:9px 0}
+.code-block.output-block{border-left-color:rgba(255,255,255,0.1)}
+.code-block.amber-block{border-left-color:var(--amber)}
+.code-block.violet-block{border-left-color:var(--violet)}
+.code-block.green-block{border-left-color:var(--green)}
+.code-block.pink-block{border-left-color:var(--pink)}
+.code-block.red-block{border-left-color:var(--red)}
+.code-block .cb-top{background:rgba(34,211,238,0.03);border-bottom:1px solid rgba(34,211,238,0.08);padding:5px 14px;display:flex;justify-content:space-between;align-items:center}
+.code-block.output-block .cb-top{background:rgba(255,255,255,0.02);border-bottom-color:rgba(255,255,255,0.05)}
+.code-block.amber-block .cb-top{background:rgba(245,158,11,0.04);border-bottom-color:rgba(245,158,11,0.12)}
+.code-block.violet-block .cb-top{background:rgba(124,58,237,0.04);border-bottom-color:rgba(124,58,237,0.12)}
+.code-block.green-block .cb-top{background:rgba(16,185,129,0.04);border-bottom-color:rgba(16,185,129,0.12)}
+.code-block.pink-block .cb-top{background:rgba(236,72,153,0.04);border-bottom-color:rgba(236,72,153,0.12)}
+.code-block.red-block .cb-top{background:rgba(239,68,68,0.04);border-bottom-color:rgba(239,68,68,0.12)}
+.cb-top .lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(100,116,139,0.55);text-transform:uppercase}
+.cb-top .tag{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:1px 8px;border-radius:3px}
+.tag.linux{color:var(--orange);background:rgba(249,115,22,0.1)}
+.tag.out{color:rgba(100,116,139,0.5);background:rgba(255,255,255,0.04)}
+.tag.key{color:var(--amber);background:rgba(245,158,11,0.1)}
+.tag.tool{color:var(--pink);background:rgba(236,72,153,0.1)}
+.tag.vol3{color:var(--cyan);background:rgba(34,211,238,0.1)}
+pre{font-family:var(--mono);font-size:12.5px;color:#00E5A0;line-height:1.8;padding:14px 16px;overflow-x:auto;white-space:pre}
+.code-block.output-block pre{color:#94A3B8}
+.code-block.amber-block pre{color:#FDE68A}
+.code-block.violet-block pre{color:#C4B5FD}
+.code-block.green-block pre{color:var(--green-l)}
+.code-block.pink-block pre{color:var(--pink-l)}
+.code-block.red-block pre{color:var(--red-l)}
+.hl{color:#00E5A0!important;font-weight:700}
+.hl-v{color:#C4B5FD!important;font-weight:700}
+.hl-p{color:#F9A8D4!important;font-weight:700}
+.hl-a{color:#FDE68A!important;font-weight:700}
+.hl-r{color:#FCA5A5!important;font-weight:700}
+.hl-c{color:#67E8F9!important;font-weight:700}
+
+/* ── LOOK-FOR ── */
+.look-for{background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.22);border-radius:7px;padding:14px 18px;margin:11px 0}
+.look-for .lf-head{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--violet-l);text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.look-for .lf-head::before{content:'👁'}
+.look-for ul{list-style:none;padding:0}
+.look-for ul li{font-size:13.5px;color:var(--text);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(255,255,255,0.04)}
+.look-for ul li:last-child{border:none}
+.look-for ul li::before{content:'→';position:absolute;left:0;color:var(--violet-l)}
+
+/* ── FLAG BOX ── */
+.flag-box{background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(16,185,129,0.02));border:1px solid rgba(16,185,129,0.4);border-left:5px solid var(--green);border-radius:8px;padding:22px 28px;margin:24px 0;position:relative;overflow:hidden}
+.flag-box::after{content:'⚑';position:absolute;right:20px;top:12px;font-size:34px;color:rgba(16,185,129,0.1);pointer-events:none}
+.fb-label{font-family:var(--mono);font-size:9.5px;letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:9px}
+.fb-val{font-family:var(--mono);font-size:12.5px;color:var(--green);margin-bottom:12px;word-break:break-all;line-height:1.7;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.18);border-radius:5px;padding:10px 14px}
+.fb-why{font-size:13px;color:var(--green-l);line-height:1.7;border-top:1px solid rgba(16,185,129,0.15);padding-top:11px}
+
+/* ── ROADMAP ── */
+.roadmap{border-left:2px solid rgba(124,58,237,0.28);margin:16px 0 26px;padding-left:0}
+.rm-item{display:flex;gap:14px;padding:9px 0 9px 22px;position:relative}
+.rm-item::before{content:'';position:absolute;left:-7px;top:16px;width:12px;height:12px;background:var(--violet);border-radius:50%;border:2px solid var(--dark)}
+.rm-item.rm-flag::before{background:var(--green)}
+.rm-item.rm-tool::before{background:var(--pink)}
+.rm-step{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--violet-l);min-width:56px;text-transform:uppercase;margin-top:2px;flex-shrink:0}
+.rm-item.rm-flag .rm-step{color:var(--green)}
+.rm-item.rm-tool .rm-step{color:var(--pink)}
+.rm-title{font-family:var(--head);font-size:15px;font-weight:600;color:var(--white);margin-bottom:2px}
+.rm-desc{font-size:12.5px;color:var(--muted)}
+
+/* ── GRID CARDS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 20px}
+.grid-card{background:var(--card);border:1px solid rgba(124,58,237,0.16);border-radius:7px;padding:14px 16px}
+.grid-card .gc-cmd{font-family:var(--mono);font-size:12.5px;color:var(--cyan);margin-bottom:5px}
+.grid-card .gc-desc{font-size:13px;color:var(--muted)}
+
+/* ── DIFF TABLE ── */
+.diff-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px}
+.diff-table th{background:rgba(124,58,237,0.1);color:var(--violet-l);font-family:var(--head);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px;text-align:left;border:1px solid rgba(124,58,237,0.18)}
+.diff-table td{padding:9px 14px;border:1px solid rgba(255,255,255,0.06);color:var(--text);vertical-align:top}
+.diff-table tr:nth-child(even) td{background:rgba(255,255,255,0.015)}
+.diff-table td:first-child{color:var(--muted);font-family:var(--mono);font-size:12px}
+.diff-table td.hi{color:var(--green);font-weight:500}
+.diff-table td.lo{color:var(--amber);font-weight:500}
+
+/* ── TIMELINE TABLE ── */
+.tl-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.tl-table th{background:rgba(16,185,129,0.1);color:var(--green-l);font-family:var(--head);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 12px;text-align:left;border:1px solid rgba(16,185,129,0.18)}
+.tl-table td{padding:9px 12px;border:1px solid rgba(255,255,255,0.06);color:var(--text);vertical-align:top;font-size:13px;line-height:1.55}
+.tl-table tr:nth-child(even) td{background:rgba(255,255,255,0.012)}
+.tl-table td:first-child{font-family:var(--mono);font-size:11.5px;color:var(--cyan);white-space:nowrap}
+.tl-table td.mitre{font-family:var(--mono);font-size:11px;color:var(--amber)}
+.tl-table td.conf-hi{color:var(--green);font-weight:600}
+.tl-table td.conf-med{color:var(--amber);font-weight:600}
+
+/* ── RECAP ── */
+.recap-grid{display:flex;flex-direction:column;gap:11px;margin:16px 0 24px}
+.recap-card{border-radius:0 8px 8px 0;padding:16px 20px}
+.recap-card .rc-title{font-family:var(--head);font-size:16px;font-weight:700;margin-bottom:5px}
+.recap-card .rc-body{font-size:13.5px;line-height:1.65;color:var(--muted)}
+
+/* ── SETUP STEP ── */
+.setup-step{margin:15px 0;border:1px solid rgba(124,58,237,0.18);border-radius:8px;overflow:hidden}
+.setup-step-head{background:rgba(124,58,237,0.07);border-bottom:1px solid rgba(124,58,237,0.12);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.sn{background:var(--violet);color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;flex-shrink:0}
+.sn.green-n{background:var(--green)}
+.sn.pink-n{background:var(--pink)}
+.sn.amber-n{background:var(--amber);color:#1a0e00}
+.sn.red-n{background:var(--red)}
+.st-desc{font-size:13.5px;font-weight:500;color:var(--text)}
+.setup-step-body{padding:14px 18px;background:rgba(255,255,255,0.005)}
+
+/* ── QUIZ ── */
+.quiz-progress{display:flex;gap:7px;margin-bottom:20px;align-items:center}
+.qp-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);margin-right:4px;text-transform:uppercase}
+.qp-dot{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:all .3s}
+.qp-dot.c{background:var(--green);border-color:var(--green)}
+.qp-dot.w{background:var(--red);border-color:var(--red)}
+.qcard{background:var(--card);border:1px solid rgba(124,58,237,0.2);border-radius:10px;margin:13px 0;overflow:hidden;transition:border-color .25s}
+.qcard.ac{border-color:rgba(16,185,129,0.5)}
+.qcard.aw{border-color:rgba(239,68,68,0.4)}
+.qcard-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.q-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--violet-l);text-transform:uppercase;margin-bottom:7px}
+.q-text{font-size:14.5px;font-weight:500;color:var(--white);line-height:1.55}
+.q-opts{padding:12px 20px 16px;display:flex;flex-direction:column;gap:8px}
+.q-opt{display:flex;align-items:flex-start;gap:11px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:10px 13px;cursor:pointer;transition:all .18s;text-align:left;width:100%;font-family:var(--body)}
+.q-opt:hover:not(:disabled){background:rgba(124,58,237,0.08);border-color:rgba(124,58,237,0.4)}
+.q-opt:disabled{cursor:default}
+.opt-let{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,0.06);border-radius:4px;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s}
+.opt-txt{font-size:13.5px;color:var(--text);line-height:1.5}
+.q-opt.correct{background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.42)}
+.q-opt.correct .opt-let{background:var(--green);color:#052E16}
+.q-opt.correct .opt-txt{color:var(--green-l)}
+.q-opt.wrong{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.35)}
+.q-opt.wrong .opt-let{background:var(--red);color:var(--white)}
+.q-opt.wrong .opt-txt{color:var(--red-l);text-decoration:line-through}
+.q-opt.dimmed{opacity:.3}
+.q-fb{display:none;margin:0 20px 16px;border-radius:7px;padding:12px 15px;font-size:13.5px;line-height:1.65;animation:fadeUp .3s ease}
+.q-fb.show{display:block}
+.fb-badge{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-weight:700}
+.q-fb.cfb{background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.26);color:var(--green-l)}
+.q-fb.cfb .fb-badge{color:var(--green)}
+.q-fb.wfb{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.26);color:var(--red-l)}
+.q-fb.wfb .fb-badge{color:var(--red)}
+.scoreboard{display:none;background:var(--panel);border:1px solid rgba(124,58,237,0.38);border-radius:10px;padding:32px;margin:24px 0;text-align:center;animation:fadeUp .4s ease}
+.scoreboard.show{display:block}
+.sb-title2{font-family:var(--head);font-size:17px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.sb-score{font-family:var(--head);font-size:62px;font-weight:800;line-height:1;margin-bottom:5px}
+.sb-of{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+.sb-msg{font-size:14.5px;color:var(--text);margin-bottom:24px;font-style:italic}
+.sb-btn{background:var(--violet);color:var(--white);font-family:var(--head);font-size:15px;font-weight:700;padding:10px 28px;border-radius:6px;border:none;cursor:pointer;transition:background .2s}
+.sb-btn:hover{background:var(--violet-l);color:var(--dark)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── FOOTER ── */
+footer{background:var(--panel);border-top:2px solid var(--violet);margin-left:240px;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.f-left .f-course{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+.f-left .f-mod{font-family:var(--head);font-size:18px;font-weight:700;color:var(--violet-l)}
+.f-right{text-align:right}
+.f-right .f-name{font-family:var(--head);font-size:18px;font-weight:700;color:var(--white)}
+.f-right .f-sub{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:var(--violet);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <span class="sb-week">// CC7007 · Workshop 6</span>
+    <span class="sb-title">Amadey in Memory — Incident Timeline Reconstruction</span>
+  </div>
+
+  <div class="nav-group">Before You Start</div>
+  <a href="#understand">What Are We Actually Doing?</a>
+  <a href="#vs-prev">How This Differs from Workshop 5</a>
+  <a href="#scenario">The Case Briefing</a>
+  <a href="#roadmap-sec">Investigation Roadmap</a>
+  <a href="#download">Evidence File — Setup</a>
+
+  <div class="nav-group">Setup on Kali</div>
+  <a href="#setup-vol3">Step S1 — Install Volatility 3</a>
+  <a href="#setup-verify">Step S2 — Verify &amp; windows.info</a>
+
+  <div class="nav-group">The Investigation</div>
+  <a href="#step1">Step 1 — OS Info (windows.info)</a>
+  <a href="#step2">Step 2 — Process Tree (windows.pstree)</a>
+  <a class="flag-a" href="#finding1">⚑ Finding 1 — Fake lsass Process</a>
+  <a href="#step3">Step 3 — Command Lines (windows.cmdline)</a>
+  <a href="#step4">Step 4 — Network Connections (windows.netscan)</a>
+  <a class="flag-a" href="#finding2">⚑ Finding 2 — C2 Server Identified</a>
+  <a href="#step5">Step 5 — Persistence (windows.filescan)</a>
+  <a href="#step6">Step 6 — Registry Run Keys</a>
+  <a class="flag-a" href="#finding3">⚑ Finding 3 — Persistence Mechanisms</a>
+  <a href="#step7">Step 7 — Build the Attack Timeline</a>
+
+  <div class="nav-group">Finish Up</div>
+  <a href="#recap">What Did We Learn?</a>
+  <a href="#quiz">Knowledge Check</a>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">CC7007 · Workshop 6</div>
+  <h1>Amadey in Memory<br><em>Incident Timeline Reconstruction</em></h1>
+  <p class="tagline">A trojan stealer hiding as a system process. A C2 beacon in live memory. Persistence planted across two mechanisms. This workshop teaches you to reconstruct a complete MITRE ATT&CK-mapped attack timeline from a single memory dump — the analyst's most time-critical skill.</p>
+  <div class="chips">
+    <div class="chip hi">Tool: <b>Volatility 3 · Kali Linux</b></div>
+    <div class="chip warn">OS: <b>Windows 7 x64</b></div>
+    <div class="chip">Platform: <b>Lab VM · Kali Linux</b></div>
+    <div class="chip cyan">New skill: <b>Timeline construction · MITRE ATT&CK mapping</b></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     WHAT ARE WE DOING
+══════════════════════════════ -->
+<div class="divider" id="understand">🧠 WHAT ARE WE ACTUALLY DOING? — READ FIRST</div>
+
+<p>In Workshop 5 (Evil's Den) you investigated a <strong>script-based attack</strong>: a Python script encrypted a file, hid a key inside a JPEG using steganography, and left artefacts in memory because Notepad windows remained open. The investigation was linear — find the files, reverse the crypto, extract the hidden data.</p>
+
+<p>This workshop is different. Amadey is a <strong>live trojan stealer</strong> — malware that executes, establishes real network communications, plants persistence mechanisms, and harvests credentials, all while disguising itself as a legitimate Windows process. Your investigation must do more than find what happened. You must establish <strong>when each action occurred, in what order, using which technique</strong>, and map every step to the MITRE ATT&CK framework — because that is what a professional incident timeline report looks like.</p>
+
+<h2 class="sec">What new skills does this add?</h2>
+
+<div class="grid-2">
+  <div class="grid-card" style="border-left:3px solid var(--violet-l)">
+    <div class="gc-cmd" style="color:var(--violet-l)">Volatility 3 syntax</div>
+    <div class="gc-desc">This workshop uses <strong>Vol3</strong>, not Vol2. The command structure, plugin names, and profile handling are different. A direct comparison is provided in the next section.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--pink)">
+    <div class="gc-cmd" style="color:var(--pink)">Process masquerading</div>
+    <div class="gc-desc"><code>windows.pstree</code> reveals a process named <code>lssass.exe</code> — one letter away from the legitimate Windows process <code>lsass.exe</code>. Spotting typosquatted process names is a core analyst skill.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--amber)">
+    <div class="gc-cmd" style="color:var(--amber)">Network IOC extraction</div>
+    <div class="gc-desc"><code>windows.netscan</code> captures TCP connections active at time of dump — including live C2 beaconing. You will extract the C2 IP and port directly from memory.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--cyan)">
+    <div class="gc-cmd">Attack timeline construction</div>
+    <div class="gc-desc">You will compile each finding into a structured timeline table: timestamp (where recoverable), event, evidence source, MITRE ATT&CK tactic, and analyst confidence level.</div>
+  </div>
+</div>
+
+<div id="vs-prev" style="margin-top:28px"></div>
+<h2 class="sec">How this differs from Workshop 5 — Evil's Den</h2>
+
+<table class="diff-table">
+  <thead>
+    <tr><th>Dimension</th><th>Workshop 5 — Evil's Den</th><th>Workshop 6 — Amadey (This Workshop)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Volatility version</td><td class="lo">Volatility 2 (python2.7 vol.py)</td><td class="hi">Volatility 3 (vol.py — system installed, run from anywhere)</td></tr>
+    <tr><td>Profile handling</td><td>--profile=Win7SP1x86_23418 required</td><td class="hi">Auto-detected — no --profile flag needed</td></tr>
+    <tr><td>Plugin names</td><td>pslist, cmdline, filescan</td><td class="hi">windows.pstree, windows.cmdline, windows.filescan</td></tr>
+    <tr><td>Lab source</td><td>MemLabs GitHub (local download)</td><td class="hi">Lab VM (pre-loaded — no download needed)</td></tr>
+    <tr><td>Threat type</td><td>Script-based — encrypt, hide, exfiltrate once</td><td class="hi">Persistent trojan — live C2, credential harvesting</td></tr>
+    <tr><td>Primary objective</td><td>Recover flag via crypto reversal + steganography</td><td class="hi">Reconstruct full incident timeline with MITRE mapping</td></tr>
+    <tr><td>Key new technique</td><td>steghide + CyberChef XOR reversal</td><td class="hi">windows.netscan + windows.registry.printkey + timeline table</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <div class="bx-label">⚠️ Always use the full windows. plugin name</div>
+  <p>Vol3 supports Windows, Linux, and Mac plugins. If you type just <code>pstree</code>, Vol3 finds matching plugins for all three OSes and errors with <em>"plugin matches multiple plugins"</em>. Always use the full namespace: <code>windows.pstree</code>, <code>windows.netscan</code>, etc. No <code>--profile</code> flag is ever needed — Vol3 detects the OS automatically.</p>
+</div>
+
+
+<!-- ══════════════════════════════
+     SCENARIO
+══════════════════════════════ -->
+<div class="divider pink-d" id="scenario">📁 THE CASE — READ BEFORE ANYTHING ELSE</div>
+
+<div class="scenario-card">
+  <div class="sc-ref">// Case Reference: AMADEY-MEM-06 · Evidence type: Windows Memory Dump · Profile: Windows 7 x64</div>
+  <div class="sc-body">
+    <p>After-hours on a Tuesday, your organisation's Endpoint Detection and Response (EDR) system fires an alert against a Windows 7 workstation used by an employee in the finance department. The alert flags <strong>suspicious process behaviour</strong> consistent with the Amadey Trojan Stealer — a well-documented malware strain that specialises in reconnaissance, credential harvesting, and establishing persistent remote access.</p>
+    <p>The on-call analyst pulled a live memory dump before the machine was isolated. You have been handed the <code>.vmem</code> artifact and asked to produce a full incident timeline: what the malware did, in what order, and how it intended to survive a reboot. Legal have been notified — your timeline may be used in disciplinary proceedings.</p>
+    <p>The Amadey Trojan Stealer is known to: masquerade as a legitimate Windows process to avoid detection, establish encrypted C2 communications, plant persistence via the Windows Run registry key and the Scheduled Tasks folder, and harvest credentials from browser profiles and credential stores. Your task is to <strong>find the evidence of each of these behaviours in the memory dump and build a defensible chronological timeline.</strong></p>
+  </div>
+</div>
+
+<div class="box tip">
+  <div class="bx-label">💡 Reading the scenario as an analyst</div>
+  <p><strong>Process masquerading</strong> → Look for processes with names one character different from legitimate Windows processes. <code>lsass.exe</code> vs <code>lssass.exe</code> is the classic Amadey typosquat. The process tree will reveal it.</p>
+  <p><strong>C2 communications</strong> → <code>windows.netscan</code> captures TCP/UDP state at time of dump. An established outbound connection from a suspicious process to an unusual external IP is your C2 indicator.</p>
+  <p><strong>Persistence</strong> → Two known Amadey persistence vectors: a value in the Windows Run registry key, and a copy of the executable planted in the Scheduled Tasks folder. Both are findable via memory.</p>
+</div>
+
+
+<!-- ══════════════════════════════
+     ROADMAP
+══════════════════════════════ -->
+<div class="divider purple-d" id="roadmap-sec">🗺 INVESTIGATION ROADMAP</div>
+
+<div class="roadmap" style="margin-top:20px">
+  <div class="rm-item"><div class="rm-step">Step 1</div><div><div class="rm-title">Identify OS and dump metadata — <em>windows.info</em></div><div class="rm-desc">Vol3's equivalent of imageinfo. Confirms Windows 7 x64 and the exact capture timestamp — your timeline anchor</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 2</div><div><div class="rm-title">Map the process tree — <em>windows.pstree</em></div><div class="rm-desc">Vol3 renders parent-child process relationships directly. A process with a name one letter from lsass.exe is your first anomaly</div></div></div>
+  <div class="rm-item rm-flag"><div class="rm-step">Finding 1</div><div><div class="rm-title">Fake lsass process identified — process masquerading confirmed</div><div class="rm-desc">MITRE ATT&CK: T1036.005 — Masquerading: Match Legitimate Name or Location</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 3</div><div><div class="rm-title">Read process arguments — <em>windows.cmdline</em></div><div class="rm-desc">What path was the malware executed from? The executable path reveals its staging location on disk</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 4</div><div><div class="rm-title">Capture network state — <em>windows.netscan</em></div><div class="rm-desc">Find established outbound TCP connections from the malicious process. The remote IP and port are your C2 indicators</div></div></div>
+  <div class="rm-item rm-flag"><div class="rm-step">Finding 2</div><div><div class="rm-title">C2 server IP and port extracted from live memory</div><div class="rm-desc">MITRE ATT&CK: T1071 — Application Layer Protocol (C2)</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 5</div><div><div class="rm-title">Locate malware files in memory — <em>windows.filescan</em></div><div class="rm-desc">Find where Amadey planted a copy of itself — typically the Temp folder and the System32 Tasks directory</div></div></div>
+  <div class="rm-item"><div class="rm-step">Step 6</div><div><div class="rm-title">Read persistence registry keys — <em>windows.registry.printkey</em></div><div class="rm-desc">Check the Windows Run key for a malicious entry that ensures Amadey restarts on login</div></div></div>
+  <div class="rm-item rm-flag"><div class="rm-step">Finding 3</div><div><div class="rm-title">Two persistence mechanisms mapped — Run key + Tasks folder</div><div class="rm-desc">MITRE ATT&CK: T1547.001 (Run Key) + T1053.005 (Scheduled Task)</div></div></div>
+  <div class="rm-item rm-tool"><div class="rm-step">Step 7</div><div><div class="rm-title">Compile the attack timeline</div><div class="rm-desc">Assemble all findings into a structured chronological table — the deliverable that IR teams, legal, and management actually use</div></div></div>
+</div>
+
+
+<!-- ══════════════════════════════
+     EVIDENCE FILE / VM SETUP
+══════════════════════════════ -->
+<div class="divider cyan-d" id="download">💾 EVIDENCE FILE — VM SETUP</div>
+
+<p>The memory dump for this workshop has been pre-loaded onto your lab VM. You do not need to download anything. Follow the steps below to confirm the file is in the right place and create your output folder before running any Volatility commands.</p>
+
+<div class="setup-step">
+  <div class="setup-step-head">
+    <div class="sn amber-n">Step D1</div>
+    <div class="st-desc">Confirm the evidence file and create your output directory</div>
+  </div>
+  <div class="setup-step-body">
+    <div class="roadmap" style="margin:10px 0;border-left-color:rgba(245,158,11,0.3)">
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="color:var(--amber);min-width:26px">1</div><div><div class="rm-title" style="font-size:14px">Open a terminal in your Kali VM</div><div class="rm-desc">Right-click the desktop and select <em>Open Terminal</em>, or find the terminal application in the taskbar</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="color:var(--amber);min-width:26px">2</div><div><div class="rm-title" style="font-size:14px">Verify the evidence file is on your Desktop</div><div class="rm-desc">Run <code>ls ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem</code> — you should see the file listed. If it is missing, ask your instructor.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="color:var(--amber);min-width:26px">3</div><div><div class="rm-title" style="font-size:14px">Create an output folder for scan results</div><div class="rm-desc">Run <code>mkdir -p ~/Desktop/amadey_output</code> — all plugin output files will be saved here throughout the investigation</div></div></div>
+    </div>
+    <div class="code-block" style="margin-top:10px">
+      <div class="cb-top"><div class="lbl">Quick check — run both lines</div><div class="tag linux">LINUX</div></div>
+      <pre>ls ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem
+mkdir -p ~/Desktop/amadey_output</pre>
+    </div>
+    <div class="box success" style="margin-top:10px">
+      <div class="bx-label">✓ Expected result</div>
+      <p>The <code>ls</code> command should print the file path without an error. If you see <em>No such file or directory</em>, raise your hand — the file may need to be copied from the shared drive.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     SETUP — VOLATILITY 3
+══════════════════════════════ -->
+<div class="divider red-d" id="setup-vol3">⚙️ SETUP — VOLATILITY 3</div>
+
+<p>Your lab VM may already have Volatility 3 installed. Run the check below first — if it works, skip straight to Step S2. If not, the install command is provided.</p>
+
+<div class="setup-step">
+  <div class="setup-step-head">
+    <div class="sn red-n">Step S1</div>
+    <div class="st-desc">Confirm Volatility 3 is available</div>
+  </div>
+  <div class="setup-step-body">
+    <p style="font-size:13.5px;color:var(--muted);margin-bottom:10px">Run this to confirm <code>vol.py</code> is on the system and is Vol3. It prints help text including the version — no plugin required.</p>
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Check Vol3 is available — no plugin needed</div><div class="tag linux">LINUX</div></div>
+      <pre>vol.py -h | head -5</pre>
+    </div>
+    <div class="code-block output-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Expected output — first line confirms the version</div><div class="tag out">OUTPUT</div></div>
+      <pre>Volatility 3 Framework 2.x.x
+usage: vol.py [-h] [-c CONFIG] [--parallelism ...]
+...</pre>
+    </div>
+    <div class="box success" style="margin-top:10px">
+      <div class="bx-label">✓ You see "Volatility 3 Framework" — proceed to Step S2</div>
+      <p>Vol3 is installed as a system tool. Run <code>vol.py</code> from any directory — no <code>cd</code> needed before any command in this workshop.</p>
+    </div>
+    <div class="box danger" style="margin-top:10px">
+      <div class="bx-label">✗ Command not found, or you see "Volatility 2"</div>
+      <p>Raise your hand — do not attempt to install anything yourself. The tool should already be present on this VM.</p>
+    </div>
+  </div>
+</div>
+
+<div class="setup-step" id="setup-verify">
+  <div class="setup-step-head">
+    <div class="sn green-n">Step S2</div>
+    <div class="st-desc">Verify — run windows.info on the Amadey dump</div>
+  </div>
+  <div class="setup-step-body">
+    <p style="font-size:13.5px;color:var(--muted);margin-bottom:10px">Unlike Volatility 2, Vol3 does not need a profile flag — it detects the OS automatically from kernel structures. This command confirms Vol3 can read the dump correctly and gives you the capture timestamp.</p>
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Run windows.info — confirms Vol3 can read the dump</div><div class="tag vol3">VOL3</div></div>
+      <pre>vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem windows.info</pre>
+    </div>
+    <div class="code-block output-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Expected output</div><div class="tag out">OUTPUT</div></div>
+      <pre>Volatility 3 Framework 2.x.x
+Variable        Value
+-----------     ------------------------------
+<span class="hl">Kernel Base</span>     0xf80002a47000
+<span class="hl">DTB</span>             0x187000
+<span class="hl">Is64Bit</span>         True
+NtSystemRoot    C:\Windows
+NtMajorVersion  6
+NtMinorVersion  1
+<span class="hl-a">Image date and time</span>  2019-12-25 22:29:17 UTC+0000
+...</pre>
+    </div>
+    <div class="look-for">
+      <div class="lf-head">What to confirm</div>
+      <ul>
+        <li><strong>Is64Bit: True</strong> — Windows 7 64-bit. This tells Vol3 which kernel structures to parse.</li>
+        <li><strong>NtMajorVersion: 6, NtMinorVersion: 1</strong> — Windows version encoding for Windows 7 (NT 6.1).</li>
+        <li><strong>No --profile flag needed</strong> — Vol3 determined the OS automatically. This is the key difference from Vol2.</li>
+        <li><strong>Image date and time</strong> — your timeline anchor. Record it now for Step 7.</li>
+      </ul>
+    </div>
+    <div class="box warn" style="margin-top:10px">
+      <div class="bx-label">⚠️ Use the full plugin namespace — windows.pstree not pstree</div>
+      <p>Vol3 supports plugins for Windows, Linux, and Mac. If you type just <code>pstree</code>, Vol3 cannot tell which OS plugin to run and will error with <em>"plugin matches multiple plugins"</em>. Always use the full name: <code>windows.pstree</code>, <code>windows.netscan</code>, <code>windows.filescan</code>, etc.</p>
+    </div>
+  </div>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">⚙️</div><div><div class="ch-title">Volatility 3 — plugin quick reference</div><div class="ch-sub">All commands for this workshop use the windows. prefix</div></div></div>
+  <div class="concept-body">
+    <table class="diff-table" style="margin:0">
+      <thead><tr><th>Action</th><th>Volatility 3 command</th><th>Common mistake</th></tr></thead>
+      <tbody>
+        <tr><td>OS info / timestamp</td><td><code>windows.info</code></td><td><code>imageinfo</code> — Vol2 only</td></tr>
+        <tr><td>Process tree</td><td><code>windows.pstree</code></td><td><code>pstree</code> — ambiguous, will error</td></tr>
+        <tr><td>Command lines</td><td><code>windows.cmdline</code></td><td><code>cmdline</code> — ambiguous, will error</td></tr>
+        <tr><td>Network connections</td><td><code>windows.netscan</code></td><td><code>netscan</code> — ambiguous, will error</td></tr>
+        <tr><td>File scan</td><td><code>windows.filescan</code></td><td><code>filescan</code> — ambiguous, will error</td></tr>
+        <tr><td>Registry key</td><td><code>windows.registry.printkey</code></td><td><code>printkey</code> — ambiguous, will error</td></tr>
+        <tr><td>Profile flag</td><td class="hi">Not needed — auto-detected</td><td><code>--profile=...</code> — Vol2 only, ignored in Vol3</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     INVESTIGATION
+══════════════════════════════ -->
+<div class="divider green-d">🔍 THE INVESTIGATION — STEP BY STEP</div>
+<p>Three parts to every step: <strong>why we are doing this</strong>, <strong>the command</strong>, <strong>what to look for</strong>. Read all three before typing anything. Record your findings as you go — you will need them for Step 7.</p>
+
+
+<!-- STEP 1 -->
+<div class="divider" id="step1" style="margin-top:28px">STEP 1 — PROFILE THE DUMP</div>
+
+<p>You already ran <code>windows.info</code> during setup. Use this section to record the key values and understand what they mean for the investigation.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🕐</div><div><div class="ch-title">The capture timestamp is your timeline anchor</div><div class="ch-sub">Every relative timing inference starts here</div></div></div>
+  <div class="concept-body">
+    <p>The memory dump was captured at a specific moment. That timestamp — visible in <code>windows.info</code> output — is the <strong>latest possible time</strong> for every artefact you find in the dump. Any process, connection, or file handle you discover was active at or before that moment.</p>
+    <p>For absolute timing of earlier events (process creation times, file write times), you will use metadata extracted from specific artefacts — process creation timestamps from the EPROCESS kernel structure, connection establishment times from TCP objects. Not all of these will be available. Where they are not, you express timing relatively: <em>"after initial execution, before capture"</em>.</p>
+    <p>This is a key concept at Level 7: a professional timeline distinguishes between what is known with certainty (direct timestamp evidence) and what is inferred (ordering based on logical dependencies). Your timeline table in Step 7 will include a confidence column for exactly this reason.</p>
+  </div>
+</div>
+
+<div class="code-block">
+  <div class="cb-top"><div class="lbl">Pattern — every Vol3 command for this dump</div><div class="tag vol3">VOL3</div></div>
+  <pre>vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem &lt;windows.plugin&gt;</pre>
+</div>
+
+<div class="box success">
+  <div class="bx-label">✓ Record before continuing</div>
+  <p>Write down the <em>Image date and time</em> from your <code>windows.info</code> output. You will use it in Step 7 as the anchor event in your timeline: <em>"[TIMESTAMP] — Memory dump acquired, machine isolated."</em></p>
+</div>
+
+
+<!-- STEP 2 -->
+<div class="divider" id="step2" style="margin-top:28px">STEP 2 — MAP THE PROCESS TREE</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to find out</div>
+  <ul>
+    <li>Get a full picture of running processes and their parent-child relationships at time of capture</li>
+    <li>Identify any process with a name suspiciously similar to a legitimate Windows system process</li>
+    <li>Note which parent spawned the suspicious process — this is the initial access vector or the infection chain entry point</li>
+    <li>Note the PID of the malicious process — you will use it to filter output in every subsequent step</li>
+  </ul>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🌲</div><div><div class="ch-title">Why windows.pstree reveals what windows.pslist hides</div><div class="ch-sub">Parent-child relationships are the forensic context</div></div></div>
+  <div class="concept-body">
+    <p><code>pslist</code> gives you a flat list of all running processes. It tells you that <code>lssass.exe</code> exists. <code>pstree</code> shows parent-child relationships — revealing that <code>lssass.exe</code> has a parent PID (2524) that is no longer in the process list, meaning the dropper already self-terminated. The child <code>rundll32.exe</code> under it confirms a DLL payload is being loaded.</p>
+    <p>Legitimate <code>lsass.exe</code> (the Windows Local Security Authority Subsystem Service) is always a child of <code>wininit.exe</code>, which is itself a child of <code>smss.exe</code>. Seeing a process named <code>lssass.exe</code> (extra 's') with a missing or wrong parent is a definitive process masquerading indicator. The parent-child relationship is the evidence that confirms it — not just the name.</p>
+  </div>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Full process tree with parent-child relationships</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Kali Terminal — save output for later grepping</div><div class="tag linux">LINUX</div></div>
+      <pre>vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem windows.pstree | tee ~/Desktop/amadey_output/pstree.txt</pre>
+    </div>
+    <div class="box tip" style="margin-top:9px">
+      <div class="bx-label">💡 tee saves and displays simultaneously</div>
+      <p>The <code>tee</code> command writes the output to a file <em>and</em> prints it to the terminal at the same time. You will reference this saved file rather than re-running the slow plugin multiple times. Get into the habit of saving every plugin output for the whole investigation — real IR engagements run across long sessions and you cannot re-acquire evidence.</p>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Actual output — key section</div><div class="tag out">OUTPUT</div></div>
+  <pre>PID   PPID  ImageFileName   Offset(V)          Threads  Handles  CreateTime
+4     0     System          0xfa800069b6f0     91       446      2023-08-09 21:32:08
+...
+400   336   wininit.exe     0xfa8002a704a0     3        74       2023-08-09 21:32:09
+<span class="hl-c">* 508  400   lsass.exe</span>       0xfa8002a77b30     6        555      2023-08-09 21:32:09  ← LEGITIMATE (child of wininit)
+...
+1356  1312  explorer.exe    0xfa8002cf5b30     21       685      2023-08-09 21:32:10
+...
+<span class="hl-r">2748  2524  lssass.exe</span>      0xfa800300a750     7        254      2023-08-09 21:33:04  ← SUSPICIOUS (parent exited)
+<span class="hl-r">* 3064 2748  rundll32.exe</span>    0xfa8003042b30     1        64       2023-08-09 21:33:56  ← DLL LOADER CHILD</pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>lssass.exe (double 's') — PID 2748</strong> — this is the malicious process. Record this PID now, you will use it to filter output in every subsequent step.</li>
+    <li><strong>Parent PID 2524 is not visible in the tree</strong> — the parent process had already exited before the dump was captured. This is a deliberate defensive technique: the dropper launches the malware then self-terminates to reduce its footprint. The malware was still launched by a user-initiated process.</li>
+    <li><strong>Legitimate lsass.exe: PID 508, child of wininit.exe (PID 400)</strong> — correct ancestry confirmed. This is what a real system security process looks like in the tree.</li>
+    <li><strong>rundll32.exe (PID 3064) as a child of lssass.exe</strong> — rundll32.exe is a legitimate Windows utility for executing DLL files. Its presence as a child of the malicious process means Amadey is using it to load a downloaded DLL payload. Record this PID too.</li>
+    <li><strong>CreateTime gap: 21:33:04 → 21:33:56</strong> — lssass.exe launched, then 52 seconds later spawned rundll32.exe. This is the delay between initial execution and payload loading.</li>
+  </ul>
+</div>
+
+<!-- FINDING 1 -->
+<div class="flag-box" id="finding1">
+  <div class="fb-label">⚑ Finding 1 — Process Masquerading Confirmed</div>
+  <div class="fb-val">
+    Malicious process: lssass.exe (PID 2748) — double 's', typosquat of legitimate lsass.exe<br>
+    Parent PID 2524: not visible in tree — dropper self-terminated before capture<br>
+    Child process: rundll32.exe (PID 3064) — used to execute downloaded DLL payload<br>
+    Legitimate lsass.exe: PID 508, child of wininit.exe (PID 400) ✓<br>
+    Malicious lssass.exe: PID 2748, parent exited ✗ — process masquerading confirmed
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1036.005 — Masquerading: Match Legitimate Name or Location.</strong> The attacker named the malware one character away from <code>lsass.exe</code> — a critical Windows security process — to evade casual inspection. The missing parent (PID 2524 exited) is itself a defensive technique: the dropper self-terminates after launching the payload to leave fewer traces. The child <code>rundll32.exe</code> confirms a second-stage DLL is being loaded. Record PID <strong>2748</strong> before moving to Step 3.
+  </div>
+</div>
+
+
+<!-- STEP 3 -->
+<div class="divider" id="step3" style="margin-top:28px">STEP 3 — READ THE COMMAND LINES</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to find out</div>
+  <ul>
+    <li>Where on disk was the malware executed from? The executable path is in the process arguments</li>
+    <li>Amadey typically stages itself in the user's <code>AppData\Local\Temp</code> folder — we want to confirm this</li>
+    <li>Were any arguments passed at execution? Arguments can reveal how the malware was invoked — by another process, a scheduled task, or directly by the user</li>
+  </ul>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Show command line for the malicious process by PID</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Filter by the malicious PID found in Step 2</div><div class="tag vol3">VOL3</div></div>
+      <pre># Get all command lines — then filter for the suspicious PID
+vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem windows.cmdline | tee ~/Desktop/amadey_output/cmdline.txt
+
+# Then filter to just the malicious process
+grep -A 2 "lssass\|&lt;your_PID&gt;" ~/Desktop/amadey_output/cmdline.txt</pre>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Key section of output</div><div class="tag out">OUTPUT</div></div>
+  <pre>PID    Process         Args
+...
+<span class="hl-r">2852   lssass.exe</span>
+<span class="hl-p">       C:\Users\&lt;user&gt;\AppData\Local\Temp\&lt;hash&gt;\lssass.exe</span></pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>AppData\Local\Temp as the execution path</strong> — Amadey stages itself here because it is a user-writable directory that does not require elevation. Many endpoint security tools do not block execution from Temp.</li>
+    <li>The subdirectory inside Temp often has a random-looking name (hash or UUID) — this is the dropper creating an isolated staging folder to avoid name collisions with other temp files</li>
+    <li><strong>No arguments beyond the path</strong> — Amadey typically runs with no command-line arguments. If you see arguments, record them — they may indicate a specific campaign configuration or a second-stage instruction</li>
+    <li>Record the full path — you will use it in Step 5 to find the file handle in memory</li>
+  </ul>
+</div>
+
+<div class="analogy">
+  <div class="an-label">// Analogy — why Temp is a preferred staging location</div>
+  Legitimate software routinely drops files in the Temp folder during installation. Security tools that block executable launches from Temp create too many false positives for everyday software. Attackers exploit this tolerance window. A mature security posture monitors <em>which</em> executables launch from Temp and flags those not associated with a known installer process — which is exactly what the EDR did to trigger this investigation.
+</div>
+
+
+<!-- STEP 4 -->
+<div class="divider" id="step4" style="margin-top:28px">STEP 4 — CAPTURE NETWORK STATE</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to find out</div>
+  <ul>
+    <li>Whether the malicious process had any active or recently-established TCP connections at time of capture</li>
+    <li>The remote IP address and port — your C2 server indicator of compromise (IOC)</li>
+    <li>The connection state — ESTABLISHED means live C2 at time of capture; CLOSE_WAIT or TIME_WAIT means it had recently communicated</li>
+  </ul>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🌐</div><div><div class="ch-title">What windows.netscan actually captures</div><div class="ch-sub">TCP objects from the kernel's network pool</div></div></div>
+  <div class="concept-body">
+    <p>Windows maintains kernel objects for each TCP connection — <code>_TCP_ENDPOINT</code> structures in the network pool. These contain the source address, destination address, ports, protocol, state, and the PID of the owning process. <code>windows.netscan</code> scans the kernel pool for these objects and presents them in a readable table.</p>
+    <p>Critically: netscan finds connections even if the process has since tried to hide them by closing the socket at the application layer, because the kernel pool object may not be immediately freed. It also finds connections from recently-terminated processes if the kernel object has not yet been reclaimed — this is the same pool persistence mechanism you saw with file handles in Workshop 5.</p>
+    <p>For the analyst: any ESTABLISHED connection from a process in the Temp folder to an external IP on an unusual port is a C2 indicator. Any connection from a process with a masqueraded name is a confirmed IOC.</p>
+  </div>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Scan for all network objects — then filter by malicious PID</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Save output, then grep for the suspicious PID</div><div class="tag vol3">VOL3</div></div>
+      <pre>vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem windows.netscan | tee ~/Desktop/amadey_output/netscan.txt
+
+# Filter for the malicious PID
+grep "&lt;your_PID&gt;\|lssass" ~/Desktop/amadey_output/netscan.txt</pre>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Representative output — C2 connection</div><div class="tag out">OUTPUT</div></div>
+  <pre>Offset     Proto  LocalAddr        LocalPort  ForeignAddr       ForeignPort  State        PID   Owner
+...
+<span class="hl-r">0xfa800...  TCPv4  192.168.x.x      49XXX      185.215.XXX.XXX   80           ESTABLISHED  2852  lssass.exe</span>
+...</pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>ESTABLISHED connection on port 80 from lssass.exe</strong> — C2 over HTTP (port 80) is a common Amadey technique. Using port 80 blends into normal web traffic, making it harder to block at the firewall without disrupting legitimate browsing.</li>
+    <li><strong>The foreign IP address</strong> — record this. It is the C2 server IOC. You can submit it to VirusTotal or abuse.ch for threat intelligence enrichment outside this workshop.</li>
+    <li><strong>State: ESTABLISHED</strong> — the malware was actively communicating at the moment the dump was taken. This is the strongest possible evidence of live C2.</li>
+    <li>Also check for any UDP connections — some Amadey variants use DNS over UDP for C2 channel establishment before switching to HTTP.</li>
+  </ul>
+</div>
+
+<!-- FINDING 2 -->
+<div class="flag-box" id="finding2">
+  <div class="fb-label">⚑ Finding 2 — Live C2 Connection Identified</div>
+  <div class="fb-val">
+    Source: lssass.exe (PID from Step 2) → Remote IP on port 80<br>
+    State: ESTABLISHED — active communication at time of dump<br>
+    Protocol: TCPv4 over HTTP (port 80) — blends with legitimate web traffic<br>
+    IOC: Record the foreign IP from your netscan output for threat intel enrichment<br>
+    Evidence source: windows.netscan — kernel TCP_ENDPOINT object
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1071.001 — Application Layer Protocol: Web Protocols.</strong> Using HTTP on port 80 for C2 is deliberate — it traverses most firewalls without triggering alerts because port 80 is expected on corporate networks. The combination of a masqueraded process name (Finding 1) and C2 over a permitted port (Finding 2) is a classic Amadey dual-evasion pattern. The memory dump caught it because the kernel TCP object was live at time of capture.
+  </div>
+</div>
+
+
+<!-- STEP 5 -->
+<div class="divider" id="step5" style="margin-top:28px">STEP 5 — LOCATE MALWARE FILES IN MEMORY</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to find out</div>
+  <ul>
+    <li>Where on the filesystem did Amadey plant its files? We already know the initial staging path from Step 3 — now we look for <em>additional</em> copies it may have dropped</li>
+    <li>Amadey is known to copy itself into <code>C:\Windows\System32\Tasks</code> — a location associated with scheduled tasks that gives the appearance of a legitimate Windows component</li>
+    <li>File handles in memory may reveal files that were opened by the malware but have since been deleted from disk — the same pool persistence mechanism from Workshop 5</li>
+  </ul>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Scan for malware-related files by name fragments</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">filescan is slow — save once, grep many times</div><div class="tag vol3">VOL3</div></div>
+      <pre># Run filescan once and save — this takes several minutes
+vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem windows.filescan > ~/Desktop/amadey_output/filescan.txt 2>&1
+
+# Search for the malware executable
+grep -i "lssass" ~/Desktop/amadey_output/filescan.txt
+
+# Search for files in Temp (where Amadey staged itself)
+grep -i "\\\\Temp\\\\" ~/Desktop/amadey_output/filescan.txt | grep -i ".exe"
+
+# Search for anything in the Tasks folder
+grep -i "\\\\Tasks\\\\" ~/Desktop/amadey_output/filescan.txt</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 filescan can take 5–10 minutes on a 500MB image</div>
+      <p>Start it, then read ahead to understand Steps 6 and 7 while it runs. Do not interrupt it — if it is cut short, you will miss file handles and have to run it again. The output file will be large; this is normal.</p>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Representative output from grep results</div><div class="tag out">OUTPUT</div></div>
+  <pre># From grep lssass:
+0xfa800...  \Device\HarddiskVolume2\Users\...\AppData\Local\Temp\...\lssass.exe
+
+# From grep Tasks:
+<span class="hl-r">0xfa800...  \Device\HarddiskVolume2\Windows\System32\Tasks\lssass.exe</span></pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>lssass.exe in System32\Tasks</strong> — this is the persistence copy. The Tasks folder is associated with scheduled tasks and is writable without elevation. Placing an executable here makes it look like a Windows system component to casual inspection.</li>
+    <li><strong>Two copies of lssass.exe</strong> — one in Temp (the execution copy) and one in Tasks (the persistence copy). The existence of two copies confirms this is not accidental naming — it is deliberate placement.</li>
+    <li>Record the memory offset of each file — you could use <code>windows.dumpfiles</code> to extract and submit them to VirusTotal for hash confirmation, though this is optional for this workshop</li>
+  </ul>
+</div>
+
+
+<!-- STEP 6 -->
+<div class="divider" id="step6" style="margin-top:28px">STEP 6 — READ THE PERSISTENCE REGISTRY KEYS</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are trying to find out</div>
+  <ul>
+    <li>Whether Amadey added an entry to the Windows Run registry key — the most common Windows persistence mechanism</li>
+    <li>The exact value name and data (the command it will execute on reboot)</li>
+    <li>Which user account's Run key was modified — this tells us the privilege level the malware achieved</li>
+  </ul>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🗝</div><div><div class="ch-title">The Windows Run key — persistence 101</div><div class="ch-sub">Every value here executes automatically on user login</div></div></div>
+  <div class="concept-body">
+    <p>The Windows registry Run key (<code>HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run</code>) instructs Windows to execute the named commands whenever the current user logs in. This is legitimate — many Windows applications use it. It is also the most common malware persistence mechanism precisely because it is so ordinary.</p>
+    <p>When Amadey adds a Run key entry pointing to <code>C:\Windows\System32\Tasks\lssass.exe</code>, it ensures the malware restarts after every reboot — without needing a service, driver, or any elevated permissions. The key can be set with standard user rights.</p>
+    <p>Volatility 3's <code>windows.registry.printkey</code> reads registry hive data directly from memory, without needing to mount the registry from disk. The in-memory registry reflects the state at time of capture — including any modifications the malware made that have not yet been flushed to disk.</p>
+  </div>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">Run this</div><div class="ch-desc">Read the Run registry key for the current user</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">HKCU Run key — current user (HKCU maps to the logged-in user's hive)</div><div class="tag vol3">VOL3</div></div>
+      <pre>vol.py -f ~/Desktop/Start\ here/Artifacts/Windows\ 7\ x64-Snapshot4.vmem windows.registry.printkey --key "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"</pre>
+    </div>
+    <div class="box tip" style="margin-top:9px">
+      <div class="bx-label">💡 Also check the system-wide Run key (HKLM)</div>
+      <p>The above command checks the user-level Run key. If Amadey gained elevated privileges, it may have written to <code>HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run</code> instead — this persists for all users on the machine. Run the same command with the HKLM path to check both.</p>
+    </div>
+  </div>
+</div>
+
+<div class="code-block output-block">
+  <div class="cb-top"><div class="lbl">Representative output — malicious Run key entry</div><div class="tag out">OUTPUT</div></div>
+  <pre>Hive         Key                                              Last Written
+...
+Key: SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+
+<span class="hl-r">Name        Type    Data</span>
+<span class="hl-r">lssass      REG_SZ  C:\Windows\System32\Tasks\lssass.exe</span>
+
+OneDriveSetup  REG_SZ  C:\Windows\System32\OneDriveSetup.exe
+...</pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>An entry named "lssass" pointing to Tasks\lssass.exe</strong> — this is the persistence mechanism. On next login, Windows will execute this file automatically, re-establishing the C2 connection and the masqueraded process.</li>
+    <li><strong>The Tasks folder path as the execution target</strong> — this connects Finding 3 back to Step 5. The file you found in Tasks is not just present — it is wired into the Run key to guarantee execution on reboot.</li>
+    <li>Compare the malicious entry to the legitimate ones (like OneDriveSetup) — legitimate Run key entries point to standard Windows directories, not Tasks. The Tasks folder as an execution path is unusual and should be flagged regardless of the filename.</li>
+  </ul>
+</div>
+
+<!-- FINDING 3 -->
+<div class="flag-box" id="finding3">
+  <div class="fb-label">⚑ Finding 3 — Two Persistence Mechanisms Confirmed</div>
+  <div class="fb-val">
+    Persistence 1 — Scheduled Task Location:<br>
+    File: C:\Windows\System32\Tasks\lssass.exe (found via windows.filescan)<br>
+    <br>
+    Persistence 2 — Registry Run Key:<br>
+    Key: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run<br>
+    Value name: lssass<br>
+    Value data: C:\Windows\System32\Tasks\lssass.exe<br>
+    Evidence: windows.registry.printkey — in-memory registry hive
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1547.001 — Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder.</strong> The attacker used the Run key to ensure the malware restarts on every login, pointing at the copy hidden in the Tasks folder. <strong>T1053.005 — Scheduled Task/Job: Scheduled Task</strong> is the secondary classification — placing an executable in the Tasks folder exploits the implicit trust Windows grants to that directory. The dual-persistence approach means removing only the Run key would leave the binary in place, and removing only the binary would leave the Run key pointing to a missing file — creating a forensic footprint that would still alert a defender doing registry analysis.
+  </div>
+</div>
+
+
+<!-- STEP 7 -->
+<div class="divider amber-d" id="step7" style="margin-top:28px">STEP 7 — BUILD THE ATTACK TIMELINE</div>
+
+<div class="goal-box">
+  <div class="gb-label">What we are building</div>
+  <ul>
+    <li>A structured, chronological table of every confirmed event from the investigation</li>
+    <li>Each row: timestamp (or relative ordering if absolute timing is unavailable), event description, evidence source, MITRE ATT&CK tactic + technique, and confidence level</li>
+    <li>This is the deliverable — the document that goes to IR team lead, legal, and management</li>
+    <li>Incomplete evidence should be flagged as Medium or Low confidence — not omitted. Gaps are as significant as findings.</li>
+  </ul>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📋</div><div><div class="ch-title">What makes an incident timeline defensible?</div><div class="ch-sub">The standard your Level 7 timeline must meet</div></div></div>
+  <div class="concept-body">
+    <p>A timeline used in a disciplinary proceeding or legal case must survive challenge. The opposing party will ask: <em>how do you know this happened before that?</em> and <em>what is the source of that timestamp?</em> Every time-ordered claim needs an evidentiary basis.</p>
+    <p>Where kernel timestamps are available (process creation time from the EPROCESS structure, file modification time from the MFT), use them and cite the source. Where they are not, express ordering logically: C2 communication requires process execution, which requires initial infection — so the ordering is: infection → execution → C2, even if only the C2 timestamp is available from netscan.</p>
+    <p>The confidence column communicates epistemic honesty. High confidence means a direct timestamp from a forensic artefact. Medium means a logical inference with strong support. Low means circumstantially supported but not directly evidenced. Never assign High confidence to an inference.</p>
+  </div>
+</div>
+
+<h3 class="sub">Your completed timeline — fill in timestamps from your actual output</h3>
+
+<table class="tl-table">
+  <thead>
+    <tr>
+      <th>Timestamp / Order</th>
+      <th>Event</th>
+      <th>Evidence Source</th>
+      <th>MITRE ATT&CK</th>
+      <th>Confidence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>T-0 (before dump)</td>
+      <td>Initial infection — malicious dropper delivered to user; lssass.exe written to AppData\Local\Temp staging folder</td>
+      <td>windows.cmdline — execution path in Temp</td>
+      <td class="mitre">T1204.002 — User Execution: Malicious File</td>
+      <td class="conf-med">Medium</td>
+    </tr>
+    <tr>
+      <td>T-1 (after T-0)</td>
+      <td>Execution — lssass.exe launched by explorer.exe (PID recorded in Step 2), masquerading as Windows lsass.exe</td>
+      <td>windows.pstree — parent-child relationship</td>
+      <td class="mitre">T1036.005 — Masquerading: Match Legitimate Name</td>
+      <td class="conf-hi">High</td>
+    </tr>
+    <tr>
+      <td>T-2 (after T-1)</td>
+      <td>C2 Establishment — ESTABLISHED TCP connection from lssass.exe to [YOUR C2 IP]:80, active at time of capture</td>
+      <td>windows.netscan — kernel TCP_ENDPOINT object</td>
+      <td class="mitre">T1071.001 — Application Layer Protocol: Web</td>
+      <td class="conf-hi">High</td>
+    </tr>
+    <tr>
+      <td>T-3 (after T-1)</td>
+      <td>Persistence planted — lssass.exe copied to C:\Windows\System32\Tasks\lssass.exe</td>
+      <td>windows.filescan — File Object in kernel pool</td>
+      <td class="mitre">T1053.005 — Scheduled Task/Job</td>
+      <td class="conf-hi">High</td>
+    </tr>
+    <tr>
+      <td>T-4 (after T-3)</td>
+      <td>Persistence confirmed — Run registry key entry added: HKCU\...\Run\lssass → Tasks\lssass.exe</td>
+      <td>windows.registry.printkey — in-memory registry hive</td>
+      <td class="mitre">T1547.001 — Registry Run Keys</td>
+      <td class="conf-hi">High</td>
+    </tr>
+    <tr>
+      <td>T-5 (inferred)</td>
+      <td>Credential harvesting — Amadey capability; no direct memory evidence recovered in this analysis</td>
+      <td>Threat intelligence (known Amadey TTPs)</td>
+      <td class="mitre">T1555 — Credentials from Password Stores</td>
+      <td class="conf-med" style="color:var(--amber)">Low–Medium</td>
+    </tr>
+    <tr>
+      <td>[TIMESTAMP from Step 1]</td>
+      <td>Memory dump acquired — machine isolated from network; EDR alert confirmed as True Positive</td>
+      <td>windows.info — dump capture timestamp</td>
+      <td class="mitre">—</td>
+      <td class="conf-hi">High</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box purple">
+  <div class="bx-label">📌 Your task — complete this table with real values</div>
+  <p>Replace the bracketed placeholders (<code>[YOUR C2 IP]</code>, <code>[TIMESTAMP from Step 1]</code>, the PID values) with the actual values from your investigation. Add any additional rows for findings not covered here — for instance, if you find additional processes, additional network connections, or unusual files not documented above.</p>
+  <p>The row with Low-Medium confidence (credential harvesting) is included deliberately. In a real IR timeline, you include what the malware is <em>known</em> to do even if you cannot directly evidence it from this dump — but you flag it honestly as inference from threat intelligence rather than from your own analysis.</p>
+</div>
+
+<div class="analogy">
+  <div class="an-label">// Why the timeline matters beyond the technical findings</div>
+  A memory dump on its own is a forensic artefact with no inherent narrative. The timeline is the analyst's translation of raw evidence into a story that a decision-maker can act on. The IR team lead needs to know what to eradicate and in what order — the timeline tells them. Legal needs to know when the malware was active relative to data access events — the timeline tells them. Management needs to know how long the attacker had access — the timeline tells them. Raw plugin output does not.
+</div>
+
+
+<!-- ══════════════════════════════
+     RECAP
+══════════════════════════════ -->
+<div class="divider" id="recap">📋 WHAT DID THIS INVESTIGATION DEMONSTRATE?</div>
+
+<div class="recap-grid">
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(124,58,237,0.22);border-left:4px solid var(--violet)">
+    <div class="rc-title" style="color:var(--violet-l)">1 — Process trees reveal what flat lists conceal</div>
+    <div class="rc-body">windows.pslist would show lssass.exe. windows.pstree reveals that lssass.exe is a child of explorer.exe, not wininit.exe — which is the single piece of evidence that confirms process masquerading. The parent-child relationship is often more diagnostic than the process name itself. An analyst who only runs pslist misses the most important context.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(236,72,153,0.22);border-left:4px solid var(--pink)">
+    <div class="rc-title" style="color:var(--pink-l)">2 — Live memory catches what disk forensics misses</div>
+    <div class="rc-body">The ESTABLISHED C2 connection to the remote IP existed only in memory — it was active at time of capture and would not appear in any disk artefact. No log file on the machine would have recorded this in real time. The kernel TCP object in the network pool was the only evidence of live C2. Disk forensics conducted after network isolation would have found no connection evidence at all.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,0.22);border-left:4px solid var(--amber)">
+    <div class="rc-title" style="color:var(--amber-l)">3 — Dual persistence means dual eradication requirements</div>
+    <div class="rc-body">Amadey plants two persistence mechanisms intentionally. Remove the Run key and the binary survives in Tasks, ready to be re-executed. Remove the Tasks binary and the Run key points to a missing file, creating a forensic trace that alerts the defender — but the malware can redrop itself on next C2 connection. Complete remediation requires identifying and removing both before the machine reconnects to the network. The timeline made this clear.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(34,211,238,0.22);border-left:4px solid var(--cyan)">
+    <div class="rc-title" style="color:var(--cyan)">4 — Always use the full windows. plugin namespace</div>
+    <div class="rc-body">Vol3 ships with plugins for Windows, Linux, and Mac. Typing just <code>pstree</code> is ambiguous — Vol3 will error with "plugin matches multiple plugins". The fix is always the full namespace: <code>windows.pstree</code>, <code>windows.netscan</code>, <code>windows.filescan</code>. No <code>--profile</code> flag is ever needed — Vol3 auto-detects the OS from the dump's kernel structures, which is the key improvement over Vol2.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(16,185,129,0.22);border-left:4px solid var(--green)">
+    <div class="rc-title" style="color:var(--green-l)">5 — A timeline with honest confidence levels is more valuable than a complete-looking one</div>
+    <div class="rc-body">The credential harvesting row was marked Low-Medium confidence because it came from threat intelligence, not this dump's evidence. That distinction matters. Presenting inferred events as confirmed facts in a legal or disciplinary context can invalidate an entire investigation. The confidence column is not a weakness in the timeline — it is a demonstration of analytical rigour. Reviewers at Level 7 and above will specifically evaluate whether you distinguish evidence from inference.</div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════
+     QUIZ
+══════════════════════════════ -->
+<div class="divider amber-d" id="quiz">📝 KNOWLEDGE CHECK</div>
+
+<p style="color:var(--muted);font-size:14px;font-style:italic;margin-bottom:20px">Five questions covering the investigation techniques, MITRE ATT&CK mapping, and the forensic reasoning from this workshop. One correct answer per question.</p>
+
+<div class="quiz-progress">
+  <span class="qp-lbl">Progress</span>
+  <div class="qp-dot" id="dot-0"></div>
+  <div class="qp-dot" id="dot-1"></div>
+  <div class="qp-dot" id="dot-2"></div>
+  <div class="qp-dot" id="dot-3"></div>
+  <div class="qp-dot" id="dot-4"></div>
+</div>
+
+<!-- Q1 -->
+<div class="qcard" id="qc-0">
+  <div class="qcard-head"><div class="q-tag">Question 1</div><div class="q-text">You find a process named <code>lssass.exe</code> in the process tree as a child of <code>explorer.exe</code>. The legitimate Windows process <code>lsass.exe</code> also appears, as a child of <code>wininit.exe</code>. What is the primary forensic significance of the parent-child relationship — and why is it more diagnostically important than the name alone?</div></div>
+  <div class="q-opts" id="qo-0">
+    <button class="q-opt" onclick="ans(0,0,false)"><span class="opt-let">A</span><span class="opt-txt">The parent-child relationship shows that lssass.exe is more resource-intensive than lsass.exe, which indicates it is performing additional malicious computation alongside its disguise.</span></button>
+    <button class="q-opt" onclick="ans(0,1,true)"><span class="opt-let">B</span><span class="opt-txt">The legitimate lsass.exe is always a child of wininit.exe — a kernel boot process. The malicious lssass.exe has a parent PID (2524) that is no longer in the process list, meaning its parent process already exited. No legitimate system security process has a missing or dead parent at boot time. Additionally, a child rundll32.exe under lssass.exe confirms DLL payload loading. The parent anomaly is the definitive masquerading indicator — a name typo alone could be coincidence; a dead parent and wrong process ancestry cannot.</span></button>
+    <button class="q-opt" onclick="ans(0,2,false)"><span class="opt-let">C</span><span class="opt-txt">The parent-child relationship confirms that explorer.exe has been compromised, and lssass.exe is a child payload injected into explorer's process space to inherit its security token.</span></button>
+    <button class="q-opt" onclick="ans(0,3,false)"><span class="opt-let">D</span><span class="opt-txt">The parent-child relationship is less useful than the process name because Windows does not enforce which process can spawn which child, making the parent an unreliable indicator.</span></button>
+  </div>
+  <div class="q-fb" id="qf-0"></div>
+</div>
+
+<!-- Q2 -->
+<div class="qcard" id="qc-1">
+  <div class="qcard-head"><div class="q-tag">Question 2</div><div class="q-text">You run <code>vol.py -f dump.vmem pstree</code> and get the error <em>"plugin pstree matches multiple plugins (linux.pstree.PsTree, mac.pstree.PsTree, windows.pstree.PsTree)"</em>. What is the cause and the correct command?</div></div>
+  <div class="q-opts" id="qo-1">
+    <button class="q-opt" onclick="ans(1,0,false)"><span class="opt-let">A</span><span class="opt-txt">You need to add <code>--profile=Win7SP1x64</code> — Volatility 3 requires a profile flag to know which OS plugin to select.</span></button>
+    <button class="q-opt" onclick="ans(1,1,true)"><span class="opt-let">B</span><span class="opt-txt">The plugin name is ambiguous — Vol3 has separate <code>pstree</code> plugins for Windows, Linux, and Mac. You must use the full namespace: <code>vol.py -f dump.vmem windows.pstree</code>. No profile flag is needed — Vol3 detects the OS automatically from kernel structures.</span></button>
+    <button class="q-opt" onclick="ans(1,2,false)"><span class="opt-let">C</span><span class="opt-txt">You need to specify the OS with a <code>--os=windows</code> flag so Volatility knows which variant of the plugin to run.</span></button>
+    <button class="q-opt" onclick="ans(1,3,false)"><span class="opt-let">D</span><span class="opt-txt">The dump file must be pre-analysed with <code>imageinfo</code> before any plugin can run — Volatility 3 cannot auto-detect the OS without this step.</span></button>
+  </div>
+  <div class="q-fb" id="qf-1"></div>
+</div>
+
+<!-- Q3 -->
+<div class="qcard" id="qc-2">
+  <div class="qcard-head"><div class="q-tag">Question 3</div><div class="q-text">windows.netscan finds an ESTABLISHED TCP connection from lssass.exe to an external IP on port 80. The attacker chose port 80 (HTTP) rather than port 443 (HTTPS) or a non-standard high port. What is the strategic reason for this choice, and what additional detection challenge does it create?</div></div>
+  <div class="q-opts" id="qo-2">
+    <button class="q-opt" onclick="ans(2,0,false)"><span class="opt-let">A</span><span class="opt-txt">Port 80 was chosen because it is faster than HTTPS — the absence of TLS handshake overhead means the C2 beacon can operate at higher frequency without being throttled.</span></button>
+    <button class="q-opt" onclick="ans(2,1,false)"><span class="opt-let">B</span><span class="opt-txt">Port 80 was chosen because Amadey cannot implement TLS encryption — it uses plaintext HTTP because its developers lacked the cryptographic implementation capability.</span></button>
+    <button class="q-opt" onclick="ans(2,2,false)"><span class="opt-let">C</span><span class="opt-txt">Port 80 was chosen because corporate firewalls universally block port 443 for non-browser processes, making HTTPS less reliable for C2 than unencrypted HTTP.</span></button>
+    <button class="q-opt" onclick="ans(2,3,true)"><span class="opt-let">D</span><span class="opt-txt">Port 80 is permitted outbound on virtually all corporate networks because HTTP traffic is expected from browsers and system update services. Blocking port 80 globally would break legitimate web access. This means a firewall rule cannot cleanly block the C2 traffic without disruption. The additional detection challenge is that port 80 traffic blends with legitimate HTTP, making process-to-port correlation via memory forensics the primary detection method — rather than network-level blocking.</span></button>
+  </div>
+  <div class="q-fb" id="qf-2"></div>
+</div>
+
+<!-- Q4 -->
+<div class="qcard" id="qc-3">
+  <div class="qcard-head"><div class="q-tag">Question 4</div><div class="q-text">Amadey plants its persistence binary in <code>C:\Windows\System32\Tasks\</code> and adds a Run registry key pointing to it. A junior analyst suggests removing only the registry key as a faster remediation. Why is this incomplete — and what specific risk does it leave?</div></div>
+  <div class="q-opts" id="qo-3">
+    <button class="q-opt" onclick="ans(3,0,false)"><span class="opt-let">A</span><span class="opt-txt">Removing only the registry key is sufficient because without the Run key, the binary in Tasks cannot execute — the Tasks folder only runs files that are referenced by an active registry entry.</span></button>
+    <button class="q-opt" onclick="ans(3,1,true)"><span class="opt-let">B</span><span class="opt-txt">Removing only the registry key leaves the binary in C:\Windows\System32\Tasks\lssass.exe. On the next C2 connection — if the machine is reconnected before full remediation — Amadey can redrop the Run key via its persistence restoration capability. The binary is the root cause; the Run key is just its activation mechanism. Complete remediation requires: (1) network isolation maintained, (2) Run key removed, (3) Tasks binary deleted, (4) Temp staging copy deleted, (5) reboot to confirm no re-execution.</span></button>
+    <button class="q-opt" onclick="ans(3,2,false)"><span class="opt-let">C</span><span class="opt-txt">Removing only the registry key is insufficient because the Tasks folder binary is also registered as a Windows Scheduled Task service, which will re-add the Run key on next service start regardless of manual deletion.</span></button>
+    <button class="q-opt" onclick="ans(3,3,false)"><span class="opt-let">D</span><span class="opt-txt">Both mechanisms are equivalent and removing either one is sufficient — the attacker only needs one persistence vector to survive a reboot, so removing either the key or the binary achieves the same result.</span></button>
+  </div>
+  <div class="q-fb" id="qf-3"></div>
+</div>
+
+<!-- Q5 -->
+<div class="qcard" id="qc-4">
+  <div class="qcard-head"><div class="q-tag">Question 5</div><div class="q-text">In your Step 7 timeline, the credential harvesting row was marked as Low-Medium confidence, sourced from threat intelligence rather than direct memory evidence. A colleague argues this row should be removed because it was not directly evidenced from the dump. Why should it be kept — and why is how you mark it equally important as whether you include it?</div></div>
+  <div class="q-opts" id="qo-4">
+    <button class="q-opt" onclick="ans(4,0,false)"><span class="opt-let">A</span><span class="opt-txt">It should be removed. A forensic timeline must only contain events directly evidenced from the acquired artefacts. Including threat intelligence inferences undermines the legal admissibility of the entire document.</span></button>
+    <button class="q-opt" onclick="ans(4,1,false)"><span class="opt-let">B</span><span class="opt-txt">It should be kept and marked High confidence — if Amadey is known to perform credential harvesting, that capability was present in the malware and therefore certainly executed, regardless of whether memory evidence was recovered.</span></button>
+    <button class="q-opt" onclick="ans(4,2,true)"><span class="opt-let">C</span><span class="opt-txt">It should be kept because omitting a known Amadey TTP from the timeline creates a false picture of the incident scope — decision-makers would not know to audit credential stores or reset passwords. The confidence marking is what preserves analytical integrity: it explicitly tells the reader that this row is based on threat intelligence inference, not direct evidence, so they can weight it accordingly. A timeline that omits uncertain findings is misleading; a timeline that marks them honestly enables better decisions. The confidence column is not a disclaimer — it is part of the analysis.</span></button>
+    <button class="q-opt" onclick="ans(4,3,false)"><span class="opt-let">D</span><span class="opt-txt">It should be kept but moved to a separate appendix section, clearly labelled as speculative, so it does not appear alongside confirmed evidence findings in the main timeline body.</span></button>
+  </div>
+  <div class="q-fb" id="qf-4"></div>
+</div>
+
+<div class="scoreboard" id="scoreboard">
+  <div class="sb-title2">// Investigation Complete</div>
+  <div class="sb-score" id="sb-num"></div>
+  <div class="sb-of">CORRECT OUT OF 5</div>
+  <div class="sb-msg" id="sb-msg"></div>
+  <button class="sb-btn" onclick="resetQuiz()">↺ Try Again</button>
+</div>
+
+<div style="height:50px"></div>
+</main>
+</div>
+
+<footer>
+  <div class="f-left">
+    <div class="f-course">CC7007 · Workshop 6</div>
+    <div class="f-mod">Cyber Incident Response</div>
+  </div>
+  <div class="f-right">
+    <div class="f-name">Amadey in Memory — Incident Timeline Reconstruction</div>
+    <div class="f-sub">Volatility 3 · Windows 7 x64 · Lab VM</div>
+    <div style="font-family:var(--head);font-size:15px;font-weight:700;color:var(--violet-l);margin-top:6px">Fatma Yasmine Loumachi</div>
+  </div>
+</footer>
+
+<script>
+/* SIDEBAR NAV HIGHLIGHT */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      const m = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
+      if (m) m.classList.add('active');
+    }
+  });
+}, { rootMargin: '-10% 0px -70% 0px' });
+document.querySelectorAll('[id]').forEach(el => obs.observe(el));
+
+/* QUIZ */
+const CORRECT = [1, 1, 3, 1, 2];
+const TOTAL = 5;
+let score = 0;
+let done = new Array(TOTAL).fill(false);
+
+const FB = [
+  {
+    c: "Correct. Legitimate lsass.exe is always spawned by wininit.exe during boot — this is hard-coded into the OS. The malicious lssass.exe has parent PID 2524 which is no longer in the process list, meaning the dropper already exited. This is itself a defensive technique: the dropper self-terminates after launching the payload to reduce its footprint. The child rundll32.exe under lssass.exe further confirms second-stage DLL loading. No legitimate system security process has a dead parent and a DLL-loader child. These are the tells — not just the name typo.",
+    w: "Not quite. The parent-child relationship is forensically critical here because it reveals an impossible ancestry. Legitimate lsass.exe is always a child of wininit.exe (boot process). The malicious lssass.exe has parent PID 2524 which has already exited — a dropper that self-terminated after launching the payload. This dead-parent pattern is a deliberate anti-forensics technique. Additionally, lssass.exe has spawned rundll32.exe as a child, which confirms DLL payload loading. The name typo alone could be dismissed as coincidence — the dead parent and wrong process ancestry cannot."
+  },
+  {
+    c: "Correct. Vol3 ships plugins for Windows, Linux, and Mac — all sharing the same short name like pstree. Typing just pstree is ambiguous so Vol3 errors rather than guessing. The fix is always the full namespace prefix: windows.pstree, windows.netscan, windows.filescan, and so on. Crucially, no --profile flag is needed — Vol3 auto-detects the OS from the dump's kernel structures, unlike Vol2 which required imageinfo first.",
+    w: "Not quite. The error 'plugin matches multiple plugins' means Vol3 found pstree for Windows, Linux, AND Mac and does not know which to run. The fix is not a profile flag — Vol3 does not use --profile at all. The fix is the full plugin namespace: windows.pstree. Vol3 then auto-detects the OS from kernel structures internally and runs the correct Windows variant."
+  },
+  {
+    c: "Correct. Port 80 is the most universally permitted outbound port on corporate networks because blocking it would break legitimate HTTP traffic. Firewalls cannot simply block all port 80 traffic without causing widespread disruption. This forces defenders to rely on process-to-port correlation: instead of blocking the port, you identify which process opened the connection and whether that process should legitimately make external HTTP requests. Memory forensics — specifically netscan with PID correlation — is the primary mechanism for this detection. Network-layer tools alone cannot reliably distinguish malicious C2 traffic on port 80 from legitimate HTTP.",
+    w: "Not quite. The strategic choice of port 80 is about firewall evasion through traffic blending, not about speed or TLS capability. Port 80 (HTTP) is permitted outbound on virtually every corporate network because blocking it would break legitimate web access. Attackers exploit this tolerance. The detection challenge this creates is that network-level firewall rules cannot cleanly block the C2 traffic without collateral damage — forcing defenders to use process-level network correlation (which process opened this connection?) rather than port-level blocking. Memory forensics is exactly the tool that enables this kind of process-level correlation."
+  },
+  {
+    c: "Correct. The Run key is the activation mechanism, but the binary in Tasks is the root cause. Removing only the Run key means the binary persists. If the machine is reconnected to the network before full remediation — even briefly — Amadey's C2 connection can receive instructions to redrop the registry key, fully restoring its persistence. Complete remediation requires removing both artefacts in the correct order: (1) maintain network isolation, (2) remove the Run key, (3) delete the Tasks binary, (4) delete the Temp staging copy, (5) reboot and verify no re-execution before reconnecting to the network.",
+    w: "Not quite. Removing only the registry key is insufficient because it leaves the binary in place. The Run key is the mechanism that causes execution on login; the binary is the executable payload. If the machine reconnects to the network with the binary still present, Amadey's C2 can instruct it to re-add the Run key, fully restoring persistence. Additionally, the malware may have other execution vectors not covered in this investigation. Complete remediation requires both artefacts to be removed, in network-isolated conditions, followed by a post-remediation reboot check."
+  },
+  {
+    c: "Correct. Omitting uncertain findings from an incident timeline creates a misleadingly complete picture — decision-makers would not know to check whether credentials were compromised, because the timeline told them nothing about it. Keeping the row with Low-Medium confidence and a clear sourcing note (threat intelligence, not direct evidence) gives decision-makers the information they need to make the right call (audit credential stores, prompt password resets) while being honest about the evidential basis. The confidence column is the mechanism that preserves analytical integrity — it separates what you know from what you infer. A timeline that presents only directly-evidenced events is safer from a legal challenge perspective, but less useful for incident response.",
+    w: "Not quite. Removing the row creates a gap in the timeline that could lead to incomplete remediation — specifically, the decision not to audit credential stores or reset passwords because the timeline showed no evidence of harvesting. The confidence column exists precisely to address this: include the finding, but mark its evidential basis clearly. Low-Medium confidence sourced from threat intelligence tells the reader exactly what they need to know: Amadey is known to do this, but we did not directly observe it in this dump, so treat it as a probability, not a certainty. That is more useful than silence."
+  }
+];
+
+function ans(q, opt, correct) {
+  if (done[q]) return;
+  done[q] = true;
+  const opts = document.querySelectorAll(`#qo-${q} .q-opt`);
+  const fb   = document.getElementById(`qf-${q}`);
+  const card = document.getElementById(`qc-${q}`);
+  const dot  = document.getElementById(`dot-${q}`);
+  opts.forEach((b, i) => {
+    b.disabled = true;
+    if (i === opt) b.classList.add(correct ? 'correct' : 'wrong');
+    else if (i === CORRECT[q] && !correct) b.classList.add('correct');
+    else b.classList.add('dimmed');
+  });
+  fb.className = `q-fb show ${correct ? 'cfb' : 'wfb'}`;
+  fb.innerHTML = `<div class="fb-badge">${correct ? '✓ Correct' : '✗ Not quite'}</div>${FB[q][correct ? 'c' : 'w']}`;
+  card.classList.add(correct ? 'ac' : 'aw');
+  dot.classList.add(correct ? 'c' : 'w');
+  if (correct) score++;
+  if (done.every(Boolean)) showScore();
+}
+
+function showScore() {
+  const board = document.getElementById('scoreboard');
+  const num   = document.getElementById('sb-num');
+  const msg   = document.getElementById('sb-msg');
+  board.classList.add('show');
+  const pct = score / TOTAL;
+  num.textContent = `${score} / ${TOTAL}`;
+  num.style.color = pct === 1 ? 'var(--green)' : pct >= 0.6 ? 'var(--cyan)' : 'var(--amber)';
+  msg.textContent = pct === 1
+    ? "Perfect. You understood not just the Volatility 3 commands but the forensic reasoning behind every finding — and why the timeline is the real deliverable."
+    : pct >= 0.6
+    ? "Good. Re-read the concept boxes and feedback for the questions you missed — the reasoning behind each technique matters as much as knowing which plugin to run."
+    : "Work back through the investigation steps. Focus on why each plugin reveals what it does, not just the commands themselves.";
+  board.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  score = 0;
+  done = new Array(TOTAL).fill(false);
+  for (let i = 0; i < TOTAL; i++) {
+    document.getElementById(`qc-${i}`).classList.remove('ac','aw');
+    document.querySelectorAll(`#qo-${i} .q-opt`).forEach(b => {
+      b.disabled = false;
+      b.classList.remove('correct','wrong','dimmed');
+    });
+    const f = document.getElementById(`qf-${i}`);
+    f.className = 'q-fb'; f.innerHTML = '';
+    document.getElementById(`dot-${i}`).classList.remove('c','w');
+  }
+  document.getElementById('scoreboard').classList.remove('show');
+  document.getElementById('quiz').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
