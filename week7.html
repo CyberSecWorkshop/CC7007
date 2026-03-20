@@ -469,8 +469,9 @@ tshark --version | head -1</pre>
 <div class="look-for">
   <div class="lf-head">What to look for</div>
   <ul>
-    <li><strong>Port 80 (HTTP)</strong> — unencrypted. The Hancitor payload download is over HTTP in this capture. Fully readable in the PCAP.</li>
-    <li><strong>Port 443 (HTTPS/TLS)</strong> — Cobalt Strike beaconing uses HTTPS. The payload is encrypted but the certificate, timing, and connection count are not.</li>
+    <li><strong>Port 80 (HTTP)</strong> — by far the highest count. Both the Hancitor payload downloads and the Cobalt Strike beacon use HTTP in this campaign. Everything is readable in the PCAP — domains, URIs, and file content.</li>
+    <li><strong>Port 443 (HTTPS/TLS)</strong> — present but low volume. In this capture the port 443 traffic is Windows telemetry (Microsoft IPs). Cobalt Strike uses port 80 here, not 443.</li>
+    <li><strong>Port 445 (SMB)</strong> — connections to an internal host (10.3.21.3). A workstation initiating SMB to an internal server is a lateral movement indicator. You will see this in Part 4.</li>
     <li><strong>Port 53 UDP (DNS)</strong> — every external connection starts with a DNS query. High volume or unusual domains here are immediate indicators.</li>
   </ul>
 </div>
@@ -501,6 +502,7 @@ tshark --version | head -1</pre>
     <li><strong>Domains under .ru or other unfamiliar TLDs</strong> that are not recognisable as legitimate services — Hancitor C2 and its follow-on payloads use attacker-registered domains.</li>
     <li><strong>api.ipify.org</strong> — a legitimate IP-lookup service, but malware routinely queries it to determine the victim's external IP before establishing C2. Its presence is a strong infection indicator.</li>
     <li>Domains that appear only once in the entire capture — the one-hit pattern is characteristic of a single-use staging domain or a DGA bootstrap query.</li>
+    <li><strong>MORNINGGLORY-DC.morningglory.net and wpad.morningglory.net</strong> — these reveal the Active Directory domain name: <strong>morningglory</strong>. The victim machine is querying its domain controller (MORNINGGLORY-DC) and the WPAD proxy auto-detection service. This tells you the victim is a domain-joined Windows machine in a corporate AD environment — exactly the condition that triggers Hancitor to deploy Cobalt Strike.</li>
     <li>Record all suspicious domains now — you will see them again as destinations in Parts 2 and 3.</li>
   </ul>
 </div>
@@ -738,11 +740,12 @@ Evidence: Wireshark HTTP Stream (Task 2.2) + Export Objects (Task 2.3)
   | tee ~/Desktop/hancitor_output/http_dests.txt</pre>
     </div>
     <div class="code-block out" style="margin-top:8px">
-      <div class="cb-top"><div class="lbl">Expected output — one IP dominates</div><div class="tag out">OUTPUT</div></div>
-      <pre>    <span class="hl-r">XX  23.227.198.207</span>   ← Cobalt Strike C2 — /dpixel beacon loop
-     X  bor4omkin.ru resolved IP   ← Hancitor C2
-     X  sughicent.com resolved IP  ← Hancitor C2
-    ...</pre>
+      <div class="cb-top"><div class="lbl">Real output — read carefully before drawing conclusions</div><div class="tag out">OUTPUT</div></div>
+      <pre>   <span class="hl-a">1355  5.63.155.126</span>    ← bor4omkin.ru — highest count because it served large payload files
+    <span class="hl-r"> 374  23.227.198.207</span>   ← Cobalt Strike C2 — /dpixel beacon (374 short sessions)
+     175  45.8.124.233    ← Hancitor C2 (45.8.124.233)
+     122  185.68.93.4     ← sughicent.com Hancitor C2
+       4  52.20.78.240</pre>
     </div>
   </div>
 </div>
@@ -750,8 +753,9 @@ Evidence: Wireshark HTTP Stream (Task 2.2) + Export Objects (Task 2.3)
 <div class="look-for">
   <div class="lf-head">What to look for</div>
   <ul>
-    <li><strong>23.227.198.207 with the highest count by far</strong> — every <code>/dpixel</code> GET you saw in Task 2.1 is one connection to this IP. The count here confirms the total number of beacon cycles recorded in the capture.</li>
-    <li><strong>Other IPs with lower counts</strong> — these are the Hancitor C2 servers (<code>bor4omkin.ru</code>, <code>sughicent.com</code>) you saw in Task 2.1. Fewer connections because Hancitor checks in less frequently than Cobalt Strike beacons.</li>
+    <li><strong>5.63.155.126 is at the top — but it is not the beacon</strong> — this is <code>bor4omkin.ru</code>, the Hancitor payload delivery server. It has the highest count because it served multiple large binary files (207.bin, 207s.bin, b123.exe). High count plus large byte transfers = download server, not beacon.</li>
+    <li><strong>23.227.198.207 is second with 374 connections</strong> — this is the Cobalt Strike C2. Each of those 374 connections is one <code>/dpixel</code> beacon cycle: tiny bytes sent, tiny bytes received, very short duration. High count plus tiny uniform transfers = beacon.</li>
+    <li><strong>The distinction matters</strong> — do not assume the top IP is the C2. Look at the session pattern: many small identical sessions = beacon. Fewer large sessions = payload delivery or data exfiltration.</li>
     <li>Record 23.227.198.207 as your C2 IP — you will use it in Tasks 3.2 and 3.3.</li>
   </ul>
 </div>
@@ -771,9 +775,20 @@ Evidence: Wireshark HTTP Stream (Task 2.2) + Export Objects (Task 2.3)
   | head -20 \
   | tee ~/Desktop/hancitor_output/syn_timestamps.txt</pre>
     </div>
+    <div class="code-block out" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Real output — first two rows are NOT beacon cycles</div><div class="tag out">OUTPUT</div></div>
+      <pre>1.735300000    ← stager download — skip this row
+2.661715000    ← stager download — skip this row
+<span class="hl">62.969063000</span>   ← first real beacon cycle starts here
+<span class="hl">123.281302000</span>  ← interval: 123.28 − 62.97 = 60.3 seconds
+<span class="hl">183.701227000</span>  ← interval: 183.70 − 123.28 = 60.4 seconds
+<span class="hl">243.955964000</span>  ← interval: 243.96 − 183.70 = 60.3 seconds
+<span class="hl">304.327337000</span>  ← interval: 304.33 − 243.96 = 60.4 seconds
+...</pre>
+    </div>
     <div class="box tip" style="margin-top:10px">
-      <div class="bx-label">💡 Calculating the interval</div>
-      <p>Subtract consecutive timestamps: row 2 minus row 1, row 3 minus row 2, and so on. If the differences are consistently similar with low variance, that is a beacon. A human clicking links produces completely irregular gaps. Record at least five consecutive intervals and calculate the average.</p>
+      <div class="bx-label">💡 The beacon interval in this capture is 60 seconds</div>
+      <p>The first two SYN timestamps (1.74s and 2.66s) are the Cobalt Strike stager downloads — not beacon cycles. Skip them. Starting from row 3, every interval is <strong>60.3–60.4 seconds</strong> with sub-second variance. That is a timer, not a human. Record your five measured intervals and the average — this is your primary beaconing evidence for the timeline.</p>
     </div>
   </div>
 </div>
@@ -810,9 +825,9 @@ Evidence: Wireshark HTTP Stream (Task 2.2) + Export Objects (Task 2.3)
 <div class="look-for">
   <div class="lf-head">What to look for</div>
   <ul>
-    <li><strong>The domain in the HTTP Host header</strong> — because the beacon uses plain HTTP, the C2 domain is in every request in clear text. There is no certificate to decode, no SNI to extract — the domain is right there in <code>http.host</code>.</li>
-    <li><strong>Cross-reference with dns_queries.txt from Task 1.3</strong> — the domain you find here should match one of the suspicious domains you flagged earlier. That is corroboration: the DNS triage and the HTTP content analysis independently point to the same attacker infrastructure.</li>
-    <li>Record the domain — this is the C2 domain name for your timeline. Together with the IP (23.227.198.207), the URI (/dpixel), and the beacon interval from Task 3.2, this fully documents the Cobalt Strike C2 channel.</li>
+    <li><strong>The output returns the IP address 23.227.198.207 — not a domain name</strong> — the attacker configured Cobalt Strike to use the raw IP in the Host header rather than a registered domain. This is actually useful: it confirms the C2 IP and shows the attacker skipped registering a domain for this beacon, which is itself an indicator of operational security trade-offs.</li>
+    <li><strong>This corroborates Task 3.1</strong> — the same IP appearing as both the top port-80 destination (374 connections) and the Host header value in every /dpixel request independently confirms 23.227.198.207 as the Cobalt Strike C2 IP from two different evidence sources.</li>
+    <li><strong>For the timeline</strong> — record "C2 IP: 23.227.198.207, no domain registered for beacon (IP used directly in Host header)". This is your complete C2 identification alongside the /dpixel URI and the 60-second beacon interval from Task 3.2.</li>
   </ul>
 </div>
 
@@ -821,7 +836,7 @@ Evidence: Wireshark HTTP Stream (Task 2.2) + Export Objects (Task 2.3)
   <div class="fb-val">
     Primary C2 IP: 23.227.198.207 — [connection count from http_dests.txt] HTTP connections on port 80
 C2 beacon URI: /dpixel — Cobalt Strike default malleable C2 profile path
-C2 domain: [from http.host header in Task 3.3] — visible in plaintext because beacon uses HTTP
+C2 domain: none — attacker used raw IP (23.227.198.207) directly in HTTP Host header
 Beacon interval: [calculated from syn_timestamps.txt] seconds average
 Interval variance: [calculated] — low variance confirms programmatic beaconing
 Evidence: tshark port 80 destination count + SYN timestamps + HTTP Host header
@@ -923,15 +938,17 @@ tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap
 </div>
 
 <div class="flag-box" id="finding3">
-  <div class="fb-label">⚑ Finding 3 — Follow-On Payload Activity from PCAP Flow Statistics</div>
+  <div class="fb-label">⚑ Finding 3 — Lateral Movement Confirmed from Flow Statistics</div>
   <div class="fb-val">
-    Cobalt Strike C2: [IP from Part 3] — [frame count] conversations — corroborated by tcp_conversations.txt
-Mars Stealer exfiltration candidate: [IP] port [port] — [outbound bytes] bytes outbound
-Associated domain: [from dns_queries.txt cross-reference]
+    Lateral movement — SMB: 10.3.21.102 → 10.3.21.3:445 — 16,389 bytes outbound
+Lateral movement — RPC: 10.3.21.102 → 10.3.21.3:49676 — 10,152 bytes outbound
+Both connections are internal-only — not visible in Parts 1–3, only in conversation statistics
+Cobalt Strike C2 corroborated: 23.227.198.207:80 — 38,792 bytes across 374 short sessions
+Mars Stealer: b123.exe download confirmed (Part 2) — distinct exfiltration burst not isolated in this capture window
 Evidence: tshark -z conv,tcp (Task 4.1) + outbound byte analysis (Task 4.2)
   </div>
   <div class="fb-why">
-    <strong>MITRE ATT&CK: T1041 — Exfiltration Over C2 Channel</strong> (Mars Stealer credential transmission). The conversation statistics derived from the PCAP give the same information as a NetFlow record — source, destination, ports, and bytes — without requiring any separate collection infrastructure. Every value in this finding comes from the same PCAP file used in all previous parts. Replace all placeholders with your actual measured values.
+    <strong>MITRE ATT&CK: T1021.002 — Remote Services: SMB/Windows Admin Shares</strong> (lateral movement via SMB to 10.3.21.3). The SMB and RPC connections to the internal host are the most significant finding from Part 4 — they confirm the attacker was using the compromised workstation to probe internal servers. These connections are completely invisible in the HTTP/HTTPS analysis from Parts 1–3 because they never cross the perimeter. They are only visible in conversation statistics that aggregate all TCP traffic from the victim, including internal destinations. This is the core demonstration of why flow-level analysis is not redundant with packet-level analysis.
   </div>
 </div>
 
@@ -1019,7 +1036,7 @@ Evidence: tshark -z conv,tcp (Task 4.1) + outbound byte analysis (Task 4.2)
   </div>
   <div class="recap-card" style="background:var(--card);border:1px solid rgba(236,72,153,0.2);border-left:4px solid var(--pink)">
     <div class="rc-title" style="color:var(--pink-l)">2 — HTTP is fully recoverable; HTTPS is partially recoverable</div>
-    <div class="rc-body">The Hancitor download was over HTTP — you recovered the domain, the URI, the Content-Type, and the actual file from the PCAP with no access to the victim's disk. The Cobalt Strike C2 used HTTPS — the payload is hidden, but the destination IP, the certificate domain, and the beacon timing are all in clear text and equally evidential.</div>
+    <div class="rc-body">The Hancitor download was over HTTP — you recovered the domain, the URI, the Content-Type, and the actual file from the PCAP with no access to the victim's disk. The Cobalt Strike C2 also used HTTP in this campaign — making the full beacon request including URI and timing visible in plain text. Not all C2 uses HTTPS. When it does not, the PCAP gives you everything.</div>
   </div>
   <div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,0.2);border-left:4px solid var(--amber)">
     <div class="rc-title" style="color:var(--amber-l)">3 — Beacon timing is detectable without specialist tools</div>
