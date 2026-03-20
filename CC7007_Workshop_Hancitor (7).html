@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC7007 — Hancitor · Cobalt Strike · Mars Stealer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark:     #080B10;  --surface:  #0E1520;  --card:     #121A27;  --panel:    #070A0F;
+  --cyan:     #22D3EE;  --cyan-d:   #0891B2;  --green:    #10B981;  --green-l:  #6EE7B7;
+  --amber:    #F59E0B;  --amber-l:  #FDE68A;  --red:      #EF4444;  --red-l:    #FCA5A5;
+  --pink:     #EC4899;  --pink-l:   #F9A8D4;  --violet:   #7C3AED;  --violet-l: #A78BFA;
+  --orange:   #F97316;  --text:     #CBD5E1;  --muted:    #64748B;  --white:    #F8FAFC;
+  --mono: 'JetBrains Mono', monospace;  --head: 'Syne', sans-serif;  --body: 'DM Sans', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.85;display:flex;flex-direction:column;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:242px;background:var(--panel);border-right:1px solid rgba(34,211,238,0.15);overflow-y:auto;z-index:100;padding-bottom:80px}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid rgba(34,211,238,0.12);margin-bottom:4px}
+.sb-week{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--cyan);display:block;margin-bottom:5px;text-transform:uppercase}
+.sb-title{font-family:var(--head);font-size:12.5px;font-weight:700;color:var(--cyan);line-height:1.35}
+.nav-group{padding:12px 18px 3px;font-family:var(--mono);font-size:8px;letter-spacing:2.5px;color:rgba(100,116,139,0.45);text-transform:uppercase}
+.sidebar a{display:block;padding:5px 18px 5px 22px;font-size:12px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all .18s;line-height:1.4}
+.sidebar a:hover,.sidebar a.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(34,211,238,0.04)}
+.sidebar a.flag-a{color:var(--green-l)}
+.sidebar a.flag-a:hover,.sidebar a.flag-a.active{color:var(--green);border-left-color:var(--green);background:rgba(16,185,129,0.05)}
+.layout{display:flex;flex:1}
+.main{margin-left:242px;padding:0 48px 80px;max-width:980px;width:100%}
+
+/* HERO */
+.hero{background:linear-gradient(150deg,#050709 0%,#071422 55%,#050709 100%);border-bottom:2px solid var(--cyan);padding:54px 48px 46px;margin:0 -48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-40px;width:400px;height:400px;background:radial-gradient(circle,rgba(34,211,238,0.1),transparent 62%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.4);color:var(--cyan);font-family:var(--mono);font-size:10px;letter-spacing:3px;padding:5px 14px;border-radius:3px;margin-bottom:20px;text-transform:uppercase}
+.hero h1{font-family:var(--head);font-size:46px;font-weight:800;color:var(--white);line-height:1.05;margin-bottom:14px}
+.hero h1 em{color:var(--cyan);font-style:normal}
+.hero p.tagline{font-size:14.5px;color:var(--muted);font-weight:300;max-width:620px;margin-bottom:28px;line-height:1.75}
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted)}
+.chip b{font-weight:500}  .chip.c b{color:var(--cyan)}  .chip.g b{color:var(--green)}
+.chip.a b{color:var(--amber)}  .chip.p b{color:var(--pink)}
+
+/* DIVIDERS */
+.divider{margin:50px 0 22px;padding:12px 22px 12px 26px;background:var(--panel);border:1px solid rgba(34,211,238,0.2);border-left:5px solid var(--cyan);border-radius:0 8px 8px 0;font-family:var(--head);font-size:13.5px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.divider.am{border-left-color:var(--amber);color:var(--amber-l)}
+.divider.gn{border-left-color:var(--green);color:var(--green)}
+.divider.pk{border-left-color:var(--pink);color:var(--pink)}
+.divider.rd{border-left-color:var(--red);color:var(--red-l)}
+.divider.vi{border-left-color:var(--violet);color:var(--violet-l)}
+
+h2.sec{font-family:var(--head);font-size:21px;font-weight:700;color:var(--cyan);margin:28px 0 10px;border-bottom:1px solid rgba(34,211,238,0.18);padding-bottom:6px}
+h3.sub{font-family:var(--head);font-size:13px;font-weight:700;color:var(--pink);letter-spacing:1.5px;text-transform:uppercase;margin:18px 0 8px}
+p{margin-bottom:12px;font-size:14.5px;line-height:1.85}
+strong{color:var(--white);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;color:var(--cyan);background:rgba(34,211,238,0.08);padding:2px 7px;border-radius:3px}
+
+/* BOXES */
+.box{border-radius:8px;padding:14px 18px;margin:12px 0;font-size:13.5px;line-height:1.7}
+.box .bx-label{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;font-weight:700;display:flex;align-items:center;gap:7px}
+.box.tip{background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.22);color:var(--text)}.box.tip .bx-label{color:var(--cyan)}
+.box.warn{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.28);color:#FDE68A}.box.warn .bx-label{color:var(--amber)}
+.box.danger{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.28);color:var(--red-l)}.box.danger .bx-label{color:var(--red)}
+.box.success{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.28);color:var(--green-l)}.box.success .bx-label{color:var(--green)}
+.box.info{background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.28);color:var(--violet-l)}.box.info .bx-label{color:var(--violet-l)}
+.box p{margin:0 0 6px;font-size:13.5px;line-height:1.65}.box p:last-child{margin:0}.box strong{color:var(--white)}
+
+/* SCENARIO */
+.scenario-card{background:linear-gradient(135deg,#0B0E18,#071522);border:1px solid rgba(34,211,238,0.3);border-left:5px solid var(--cyan);border-radius:8px;padding:26px 30px;margin:16px 0;position:relative;overflow:hidden}
+.scenario-card::after{content:'🕵️';position:absolute;right:18px;top:14px;font-size:36px;opacity:.1}
+.sc-ref{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(34,211,238,0.45);margin-bottom:10px;text-transform:uppercase}
+.sc-body p{color:#C8C8C8;font-size:14.5px;margin-bottom:10px;line-height:1.85}.sc-body p:last-child{margin:0}
+
+/* CONCEPT */
+.concept{background:var(--card);border:1px solid rgba(34,211,238,0.18);border-radius:10px;margin:15px 0;overflow:hidden}
+.concept-header{background:rgba(34,211,238,0.05);border-bottom:1px solid rgba(34,211,238,0.12);padding:13px 20px;display:flex;align-items:center;gap:12px}
+.ch-icon{font-size:20px}
+.ch-title{font-family:var(--head);font-size:15.5px;font-weight:700;color:var(--cyan)}
+.ch-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.concept-body{padding:18px 22px;font-size:14px;line-height:1.85;color:var(--text)}
+.concept-body p{font-size:14px;margin-bottom:10px}.concept-body p:last-child{margin:0}
+
+/* GOAL BOX */
+.goal-box{background:linear-gradient(135deg,rgba(245,158,11,0.06),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:16px 20px;margin:14px 0}
+.gb-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--amber);text-transform:uppercase;margin-bottom:10px;font-weight:700;display:flex;align-items:center;gap:8px}
+.gb-label::before{content:'🎯'}
+.goal-box ul{list-style:none;padding:0}
+.goal-box ul li{font-size:13.5px;color:var(--amber-l);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(245,158,11,0.08)}
+.goal-box ul li:last-child{border:none}
+.goal-box ul li::before{content:'→';position:absolute;left:0;color:var(--amber)}
+
+/* COMMANDS */
+.cmd-wrap{margin:16px 0;border:1px solid rgba(34,211,238,0.18);border-radius:8px;overflow:hidden}
+.cmd-header{background:rgba(34,211,238,0.06);border-bottom:1px solid rgba(34,211,238,0.12);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.ch-pill{background:var(--cyan-d);color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:3px 12px;border-radius:12px;flex-shrink:0}
+.ch-pill.gn{background:var(--green)}.ch-pill.am{background:var(--amber);color:#1a0e00}.ch-pill.pk{background:var(--pink)}.ch-pill.rd{background:var(--red)}
+.ch-desc{font-size:13px;color:var(--text);font-weight:500}
+.cmd-inner{padding:14px 18px;background:rgba(255,255,255,0.008)}
+.code-block{background:#050709;border:1px solid rgba(34,211,238,0.12);border-left:3px solid var(--cyan);border-radius:6px;overflow:hidden;margin:9px 0}
+.code-block.out{border-left-color:rgba(255,255,255,0.1)}.code-block.am{border-left-color:var(--amber)}.code-block.gn{border-left-color:var(--green)}.code-block.pk{border-left-color:var(--pink)}.code-block.rd{border-left-color:var(--red)}
+.cb-top{background:rgba(34,211,238,0.03);border-bottom:1px solid rgba(34,211,238,0.07);padding:5px 14px;display:flex;justify-content:space-between;align-items:center}
+.code-block.out .cb-top{background:rgba(255,255,255,0.02);border-bottom-color:rgba(255,255,255,0.05)}
+.code-block.am .cb-top{background:rgba(245,158,11,0.04);border-bottom-color:rgba(245,158,11,0.1)}
+.code-block.gn .cb-top{background:rgba(16,185,129,0.04);border-bottom-color:rgba(16,185,129,0.1)}
+.lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(100,116,139,0.5);text-transform:uppercase}
+.tag{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:1px 8px;border-radius:3px}
+.tag.linux{color:var(--orange);background:rgba(249,115,22,0.1)}.tag.out{color:rgba(100,116,139,0.5);background:rgba(255,255,255,0.04)}.tag.ws{color:var(--cyan);background:rgba(34,211,238,0.1)}
+pre{font-family:var(--mono);font-size:12.5px;color:#00E5A0;line-height:1.8;padding:14px 16px;overflow-x:auto;white-space:pre}
+.code-block.out pre{color:#94A3B8}.code-block.am pre{color:#FDE68A}.code-block.gn pre{color:var(--green-l)}.code-block.pk pre{color:var(--pink-l)}.code-block.rd pre{color:var(--red-l)}
+.hl{color:#00E5A0!important;font-weight:700}.hl-r{color:#FCA5A5!important;font-weight:700}.hl-a{color:#FDE68A!important;font-weight:700}.hl-c{color:#67E8F9!important;font-weight:700}.hl-p{color:#F9A8D4!important;font-weight:700}
+
+/* LOOK FOR */
+.look-for{background:rgba(34,211,238,0.04);border:1px solid rgba(34,211,238,0.2);border-radius:7px;padding:14px 18px;margin:11px 0}
+.lf-head{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.lf-head::before{content:'👁'}
+.look-for ul{list-style:none;padding:0}
+.look-for ul li{font-size:13.5px;color:var(--text);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(255,255,255,0.04)}
+.look-for ul li:last-child{border:none}
+.look-for ul li::before{content:'→';position:absolute;left:0;color:var(--cyan)}
+
+/* FLAG BOX */
+.flag-box{background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(16,185,129,0.02));border:1px solid rgba(16,185,129,0.38);border-left:5px solid var(--green);border-radius:8px;padding:22px 28px;margin:22px 0;position:relative;overflow:hidden}
+.flag-box::after{content:'⚑';position:absolute;right:20px;top:12px;font-size:34px;color:rgba(16,185,129,0.1);pointer-events:none}
+.fb-label{font-family:var(--mono);font-size:9.5px;letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:9px}
+.fb-val{font-family:var(--mono);font-size:12px;color:var(--green);margin-bottom:12px;word-break:break-all;line-height:1.7;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.16);border-radius:5px;padding:10px 14px}
+.fb-why{font-size:13px;color:var(--green-l);line-height:1.7;border-top:1px solid rgba(16,185,129,0.14);padding-top:11px}
+
+/* ROADMAP */
+.roadmap{border-left:2px solid rgba(34,211,238,0.25);margin:14px 0 24px;padding-left:0}
+.rm-item{display:flex;gap:14px;padding:9px 0 9px 22px;position:relative}
+.rm-item::before{content:'';position:absolute;left:-7px;top:16px;width:12px;height:12px;background:var(--cyan-d);border-radius:50%;border:2px solid var(--dark)}
+.rm-item.rf::before{background:var(--green)}.rm-item.rt::before{background:var(--pink)}
+.rm-step{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--cyan);min-width:56px;text-transform:uppercase;margin-top:2px;flex-shrink:0}
+.rm-item.rf .rm-step{color:var(--green)}.rm-item.rt .rm-step{color:var(--pink)}
+.rm-title{font-family:var(--head);font-size:15px;font-weight:600;color:var(--white);margin-bottom:2px}
+.rm-desc{font-size:12.5px;color:var(--muted)}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 18px}
+.grid-card{background:var(--card);border:1px solid rgba(34,211,238,0.14);border-radius:7px;padding:14px 16px}
+.gc-head{font-family:var(--mono);font-size:12px;color:var(--cyan);margin-bottom:5px}
+.gc-body{font-size:13px;color:var(--muted)}
+
+/* TIMELINE TABLE */
+.tl-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+.tl-table th{background:rgba(16,185,129,0.1);color:var(--green-l);font-family:var(--head);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 12px;text-align:left;border:1px solid rgba(16,185,129,0.18)}
+.tl-table td{padding:9px 12px;border:1px solid rgba(255,255,255,0.06);color:var(--text);vertical-align:top;font-size:13px;line-height:1.55}
+.tl-table tr:nth-child(even) td{background:rgba(255,255,255,0.012)}
+.tl-table td:first-child{font-family:var(--mono);font-size:11.5px;color:var(--cyan);white-space:nowrap}
+.tl-table td.mitre{font-family:var(--mono);font-size:11px;color:var(--amber)}
+.tl-table td.chi{color:var(--green);font-weight:600}
+.tl-table td.cme{color:var(--amber);font-weight:600}
+.tl-table td.clo{color:var(--red-l);font-weight:600}
+
+/* RECAP */
+.recap-grid{display:flex;flex-direction:column;gap:10px;margin:14px 0 22px}
+.recap-card{border-radius:0 8px 8px 0;padding:16px 20px}
+.rc-title{font-family:var(--head);font-size:16px;font-weight:700;margin-bottom:5px}
+.rc-body{font-size:13.5px;line-height:1.65;color:var(--muted)}
+
+/* SETUP STEP */
+.setup-step{margin:14px 0;border:1px solid rgba(34,211,238,0.16);border-radius:8px;overflow:hidden}
+.setup-head{background:rgba(34,211,238,0.06);border-bottom:1px solid rgba(34,211,238,0.1);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.sn{color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;flex-shrink:0;background:var(--cyan-d)}
+.sn.gn{background:var(--green)}.sn.am{background:var(--amber);color:#1a0e00}.sn.rd{background:var(--red)}
+.st-desc{font-size:13.5px;font-weight:500;color:var(--text)}
+.setup-body{padding:14px 18px;background:rgba(255,255,255,0.005)}
+
+/* QUIZ */
+.quiz-progress{display:flex;gap:7px;margin-bottom:18px;align-items:center}
+.qp-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);margin-right:4px;text-transform:uppercase}
+.qp-dot{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:all .3s}
+.qp-dot.c{background:var(--green);border-color:var(--green)}.qp-dot.w{background:var(--red);border-color:var(--red)}
+.qcard{background:var(--card);border:1px solid rgba(34,211,238,0.18);border-radius:10px;margin:13px 0;overflow:hidden;transition:border-color .25s}
+.qcard.ac{border-color:rgba(16,185,129,0.5)}.qcard.aw{border-color:rgba(239,68,68,0.4)}
+.qcard-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.q-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:7px}
+.q-text{font-size:14.5px;font-weight:500;color:var(--white);line-height:1.55}
+.q-opts{padding:12px 20px 16px;display:flex;flex-direction:column;gap:8px}
+.q-opt{display:flex;align-items:flex-start;gap:11px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:10px 13px;cursor:pointer;transition:all .18s;text-align:left;width:100%;font-family:var(--body)}
+.q-opt:hover:not(:disabled){background:rgba(34,211,238,0.07);border-color:rgba(34,211,238,0.38)}
+.q-opt:disabled{cursor:default}
+.opt-let{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,0.06);border-radius:4px;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.opt-txt{font-size:13.5px;color:var(--text);line-height:1.5}
+.q-opt.correct{background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.42)}.q-opt.correct .opt-let{background:var(--green);color:#052E16}.q-opt.correct .opt-txt{color:var(--green-l)}
+.q-opt.wrong{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.35)}.q-opt.wrong .opt-let{background:var(--red);color:var(--white)}.q-opt.wrong .opt-txt{color:var(--red-l);text-decoration:line-through}
+.q-opt.dimmed{opacity:.3}
+.q-fb{display:none;margin:0 20px 16px;border-radius:7px;padding:12px 15px;font-size:13.5px;line-height:1.65;animation:fadeUp .3s ease}
+.q-fb.show{display:block}
+.fb-badge{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-weight:700}
+.q-fb.cfb{background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.25);color:var(--green-l)}.q-fb.cfb .fb-badge{color:var(--green)}
+.q-fb.wfb{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);color:var(--red-l)}.q-fb.wfb .fb-badge{color:var(--red)}
+.scoreboard{display:none;background:var(--panel);border:1px solid rgba(34,211,238,0.35);border-radius:10px;padding:32px;margin:22px 0;text-align:center;animation:fadeUp .4s ease}
+.scoreboard.show{display:block}
+.sb-t{font-family:var(--head);font-size:17px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.sb-n{font-family:var(--head);font-size:62px;font-weight:800;line-height:1;margin-bottom:5px}
+.sb-of{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+.sb-msg{font-size:14.5px;color:var(--text);margin-bottom:24px;font-style:italic}
+.sb-btn{background:var(--cyan-d);color:var(--white);font-family:var(--head);font-size:15px;font-weight:700;padding:10px 28px;border-radius:6px;border:none;cursor:pointer;transition:background .2s}
+.sb-btn:hover{background:var(--cyan);color:var(--dark)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+footer{background:var(--panel);border-top:2px solid var(--cyan);margin-left:242px;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.f-course{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+.f-mod{font-family:var(--head);font-size:18px;font-weight:700;color:var(--cyan)}
+.f-right{text-align:right}
+.f-name{font-family:var(--head);font-size:18px;font-weight:700;color:var(--white)}
+.f-sub{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--panel)}::-webkit-scrollbar-thumb{background:var(--cyan-d);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="sidebar">
+  <div class="sb-logo">
+    <span class="sb-week">// CC7007 · Network Traffic Analysis</span>
+    <span class="sb-title">Hancitor · Cobalt Strike · Mars Stealer</span>
+  </div>
+  <div class="nav-group">Before You Start</div>
+  <a href="#understand">What Are We Doing?</a>
+  <a href="#scenario">Case Briefing</a>
+  <a href="#roadmap-sec">Investigation Roadmap</a>
+  <a href="#evidence">Evidence Files — Setup</a>
+  <div class="nav-group">Part 1 — Triage</div>
+  <a href="#part1">Identify the Hosts</a>
+  <a href="#task12">Identify the Protocols</a>
+  <a href="#task13">DNS Activity</a>
+  <div class="nav-group">Part 2 — Infection Vector</div>
+  <a href="#part2">Filter HTTP Traffic</a>
+  <a href="#task22">Follow the HTTP Stream</a>
+  <a href="#task23">Extract the Downloaded File</a>
+  <a class="flag-a" href="#finding1">⚑ Finding 1 — Infection Vector</a>
+  <div class="nav-group">Part 3 — C2 Traffic</div>
+  <a href="#part3">Isolate HTTPS Connections</a>
+  <a href="#task32">Beacon Timing Analysis</a>
+  <a href="#task33">TLS Certificate</a>
+  <a class="flag-a" href="#finding2">⚑ Finding 2 — C2 Identified</a>
+  <div class="nav-group">Part 4 — Flow Analysis</div>
+  <a href="#part4">tshark Conversation Stats</a>
+  <a href="#task42">Identify Lateral Movement</a>
+  <a class="flag-a" href="#finding3">⚑ Finding 3 — Lateral Movement</a>
+  <div class="nav-group">Part 5 — Timeline</div>
+  <a href="#part5">Build the Timeline</a>
+  <div class="nav-group">Finish Up</div>
+  <a href="#recap">What Did We Learn?</a>
+  <a href="#quiz">Knowledge Check</a>
+</nav>
+
+<main class="main">
+
+<div class="hero">
+  <div class="hero-badge">CC7007 · Network Traffic Analysis Workshop</div>
+  <h1>Hancitor<br><em>Cobalt Strike &amp; Mars Stealer</em></h1>
+  <p class="tagline">A real documented infection from 21 March 2022. Hancitor loads Cobalt Strike and Mars Stealer. All evidence in this workshop comes directly from the published PCAP — nothing is fabricated. Your job is to read the traffic, extract the artefacts, and build a defensible incident timeline.</p>
+  <div class="chips">
+    <div class="chip c">Tools: <b>Wireshark · tshark</b></div>
+    <div class="chip a">Evidence: <b>malware-traffic-analysis.net — real PCAP</b></div>
+    <div class="chip g">Platform: <b>Kali Linux 2025 (offline)</b></div>
+    <div class="chip p">Duration: <b>~2 hours</b></div>
+  </div>
+</div>
+
+
+<div class="divider" id="understand">🧠 WHAT ARE WE DOING?</div>
+
+<p>This workshop uses a single published evidence file: <code>2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap</code>, released by Brad Duncan on malware-traffic-analysis.net. Every finding in this workshop comes from that file. There are no fabricated tables, no invented IPs, no simulated data.</p>
+
+<p>The infection chain is documented: a user opened a malicious Word document delivered via eFax-themed spam. Enabling macros triggered Hancitor, which downloaded Cobalt Strike and Mars Stealer. Your task is to find each stage of that chain in the PCAP using Wireshark and tshark, then compile everything into a MITRE ATT&CK-mapped timeline.</p>
+
+<div class="box warn">
+  <div class="bx-label">⚠️ This PCAP contains real malware traffic</div>
+  <p>Any file you extract from this PCAP is a real malicious binary. <strong>Do not open extracted files</strong> outside the Kali VM. Do not copy them to a USB drive or any other machine. Hash everything and treat extracted content as evidence — document it, do not execute it.</p>
+</div>
+
+<h2 class="sec">What you will build from the real evidence</h2>
+<div class="grid-2">
+  <div class="grid-card" style="border-left:3px solid var(--cyan)">
+    <div class="gc-head">HTTP infection vector</div>
+    <div class="gc-body">The Hancitor download URL, User-Agent, file type, and byte size — all visible in the unencrypted HTTP response. Recoverable with Wireshark Export Objects.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--pink)">
+    <div class="gc-head" style="color:var(--pink)">C2 beacon fingerprint</div>
+    <div class="gc-body">Cobalt Strike beaconing to its C2 IP, identifiable by connection count and timing regularity. TLS certificate domain extracted from the handshake.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--amber)">
+    <div class="gc-head" style="color:var(--amber)">Conversation flow statistics</div>
+    <div class="gc-body">tshark's built-in <code>-z conv,tcp</code> flag produces real flow data from the PCAP: IP pairs, ports, byte counts, packet counts — the same fields as a NetFlow record.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--green)">
+    <div class="gc-head" style="color:var(--green)">Incident timeline</div>
+    <div class="gc-body">Every row in your timeline is sourced to a specific tshark command or Wireshark view. No finding is asserted without a direct evidence reference.</div>
+  </div>
+</div>
+
+
+<div class="divider pk" id="scenario">📁 CASE BRIEFING</div>
+
+<div class="scenario-card">
+  <div class="sc-ref">// Source: malware-traffic-analysis.net · Date: 2022-03-21 · Author: Brad Duncan · Malware: Hancitor + Cobalt Strike + Mars Stealer</div>
+  <div class="sc-body">
+    <p>On Monday 21 March 2022, a Windows host in an Active Directory environment was infected via eFax-themed malspam. The user opened a malicious Word document and enabled macros. Hancitor executed, contacted its C2 server, and downloaded two follow-on payloads: a Cobalt Strike beacon (providing the attacker with remote command execution) and Mars Stealer (a credential harvester targeting browsers and cryptocurrency wallets).</p>
+    <p>A packet capture was taken during the infection window. Brad Duncan published the PCAP, an IOC file, and the associated malware samples on malware-traffic-analysis.net. This is the evidence set you are working from today.</p>
+    <p>Your task: <strong>identify the infection vector, the C2 infrastructure, the follow-on payloads, and the scope of the compromise — from the PCAP alone — and compile the findings into a structured incident timeline.</strong></p>
+  </div>
+</div>
+
+<div class="box tip">
+  <div class="bx-label">💡 What the IOC file tells you before you start</div>
+  <p>The IOC text file (<code>2022-03-21-Hancitor-infection-IOCs.txt</code>) is available on the same page as the PCAP. It lists the known malicious IPs and domains for this infection. Your instructor may provide it alongside the PCAP. You can use it to <strong>verify</strong> findings you make independently from the PCAP — but try to reach each finding from the traffic first. The IOC file is the answer sheet, not the investigation method.</p>
+</div>
+
+
+<div class="divider vi" id="roadmap-sec">🗺 INVESTIGATION ROADMAP</div>
+
+<div class="roadmap" style="margin-top:18px">
+  <div class="rm-item"><div class="rm-step">Part 1</div><div><div class="rm-title">Network triage — hosts, protocols, DNS queries</div><div class="rm-desc">Wireshark Statistics + tshark — build a picture of the traffic before applying any targeted filter</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 2</div><div><div class="rm-title">Infection vector — the Hancitor HTTP download</div><div class="rm-desc">Display filter → Follow HTTP Stream → Export Objects → hash the extracted file</div></div></div>
+  <div class="rm-item rf"><div class="rm-step">Finding 1</div><div><div class="rm-title">Download URL, filename, byte size, and hash confirmed from PCAP</div><div class="rm-desc">MITRE ATT&CK: T1204.002 — User Execution: Malicious File</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 3</div><div><div class="rm-title">C2 traffic — Cobalt Strike beacon identification</div><div class="rm-desc">HTTPS connection counts → SYN timestamp intervals → TLS certificate domain</div></div></div>
+  <div class="rm-item rf"><div class="rm-step">Finding 2</div><div><div class="rm-title">C2 IP, port, TLS domain, and beacon interval confirmed from PCAP</div><div class="rm-desc">MITRE ATT&CK: T1071.001 — Application Layer Protocol: Web Protocols</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 4</div><div><div class="rm-title">Flow statistics — lateral movement and Mars Stealer activity</div><div class="rm-desc">tshark -z conv,tcp and -z conv,udp — real flow data from the PCAP itself</div></div></div>
+  <div class="rm-item rf"><div class="rm-step">Finding 3</div><div><div class="rm-title">Lateral movement and credential harvesting traffic identified from PCAP flows</div><div class="rm-desc">MITRE ATT&CK: T1071 — Application Layer Protocol (data exfiltration via C2)</div></div></div>
+  <div class="rm-item rt"><div class="rm-step">Part 5</div><div><div class="rm-title">Incident timeline — all findings compiled into a MITRE-mapped table</div><div class="rm-desc">Every row sourced to a specific command or Wireshark output — no assertion without evidence</div></div></div>
+</div>
+
+
+<div class="divider rd" id="evidence">💾 EVIDENCE FILES — SETUP</div>
+
+<p>The PCAP has been downloaded by your instructor and placed on your Kali VM. All zip archives on malware-traffic-analysis.net are password-protected. The current password scheme is documented on the site's About page:</p>
+
+<div class="box info">
+  <div class="bx-label">🔑 Password for all malware-traffic-analysis.net archives</div>
+  <p><strong>https://www.malware-traffic-analysis.net/about.html</strong></p>
+  <p>The password scheme changed from the old <code>infected</code> password. Always check the About page — your instructor will have used this to unzip the files before distributing them to you.</p>
+</div>
+
+<div class="setup-step">
+  <div class="setup-head"><div class="sn am">D1</div><div class="st-desc">Create the output directory — do this before any other command</div></div>
+  <div class="setup-body">
+    <div class="box danger" style="margin-bottom:12px">
+      <div class="bx-label">⚠️ Run mkdir first — every tshark command uses tee to save output</div>
+      <p>If <code>~/Desktop/hancitor_output</code> does not exist, every tshark command in this workshop will fail with <em>"tee: No such file or directory"</em>. Create the folder now before doing anything else.</p>
+    </div>
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Step 1 — create output folder (required)</div><div class="tag linux">LINUX</div></div>
+      <pre>mkdir -p ~/Desktop/hancitor_output</pre>
+    </div>
+    <div class="code-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Step 2 — confirm the PCAP is present</div><div class="tag linux">LINUX</div></div>
+      <pre>ls ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap</pre>
+    </div>
+    <div class="box success" style="margin-top:10px">
+      <div class="bx-label">✓ Expected result</div>
+      <p>mkdir runs silently (no output = success). The ls command prints the filename. If the PCAP is missing, ask your instructor before proceeding.</p>
+    </div>
+  </div>
+</div>
+
+<div class="setup-step">
+  <div class="setup-head"><div class="sn gn">D2</div><div class="st-desc">Verify Wireshark and tshark, then configure Wireshark</div></div>
+  <div class="setup-body">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Confirm both tools are present</div><div class="tag linux">LINUX</div></div>
+      <pre>wireshark --version | head -1
+tshark --version | head -1</pre>
+    </div>
+    <p style="font-size:13.5px;color:var(--muted);margin-top:12px;margin-bottom:8px">Before opening the PCAP in Wireshark, set these two options — they make every subsequent step significantly easier:</p>
+    <div class="roadmap" style="margin:8px 0;border-left-color:rgba(34,211,238,0.25)">
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">1</div><div><div class="rm-title" style="font-size:13.5px">UTC timestamps — View → Time Display Format → Date and Time of Day</div><div class="rm-desc">All timestamps now match any other log source. Essential for timeline construction.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">2</div><div><div class="rm-title" style="font-size:13.5px">Name resolution — View → Name Resolution → Resolve Network Addresses</div><div class="rm-desc">IP addresses resolve to hostnames captured in the PCAP's DNS traffic. Suspicious domains become immediately visible.</div></div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 1 ═══════════════ -->
+<div class="divider" id="part1">PART 1 — NETWORK TRIAGE</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~20 min · Wireshark Statistics + tshark</p>
+
+<p>Before applying any targeted filter, build a picture of who is in the capture, what protocols they use, and which domains were queried. This triage shapes every filter you write in Parts 2–4.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📡</div><div><div class="ch-title">Triage first — filter second</div><div class="ch-sub">Targeted filters applied too early create tunnel vision</div></div></div>
+  <div class="concept-body">
+    <p>If you go straight to filtering for a known malicious domain, you find that one connection and miss everything else. Hancitor in this capture involves three separate malware families and multiple C2 channels. A two-minute triage pass surfaces all of them. Skip it and you will write a timeline with gaps you did not know existed.</p>
+  </div>
+</div>
+
+<h2 class="sec">Task 1.1 — Identify the Hosts</h2>
+
+<div class="goal-box">
+  <div class="gb-label">What we are finding out</div>
+  <ul>
+    <li>Which internal IP is the victim workstation — identified from traffic behaviour, not from the scenario</li>
+    <li>Which external IPs have the highest packet counts — these are your primary investigation targets</li>
+    <li>The difference between internal hosts (gateway, DNS server) and the compromised workstation</li>
+  </ul>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">💻 Terminal (tshark)</div><div class="ch-desc">Rank all source IPs by packet count — save to file</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Run this first — requires hancitor_output folder from Setup D1</div><div class="tag linux">LINUX</div></div>
+      <pre>tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -T fields -e ip.src | sort | uniq -c | sort -rn | head -20 \
+  | tee ~/Desktop/hancitor_output/top_sources.txt</pre>
+    </div>
+    <div class="code-block out" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Your output will look like this</div><div class="tag out">OUTPUT</div></div>
+      <pre>   <span class="hl">2356 10.3.21.102</span>    ← victim workstation
+   1328 5.63.155.126    ← external — C2 (high count, not internal)
+    369 23.227.198.207  ← external
+    178 45.8.124.233    ← external — C2 candidate
+    147 10.3.21.3       ← internal — gateway / DNS resolver
+    102 185.68.93.4     ← external
+     48 (empty)
+     22 20.189.173.4
+     ...</pre>
+    </div>
+  </div>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🔍</div><div><div class="ch-title">Why 10.3.21.102 is the victim — not 10.3.21.3</div><div class="ch-sub">Read the traffic behaviour, not just the IP address</div></div></div>
+  <div class="concept-body">
+    <p><strong>10.3.21.102 — 2356 packets as source:</strong> This is the compromised workstation. It is generating a very high volume of outbound traffic — significantly more than any other internal host. It is initiating connections to multiple distinct external IPs (C2 servers, download servers, exfiltration endpoints). A healthy workstation contacts a small, stable set of known services. This one is communicating with attacker infrastructure.</p>
+    <p><strong>10.3.21.3 — 147 packets as source:</strong> This is the internal gateway or DNS resolver. It appears in the output because DNS responses and routing traffic pass through it. Its low count and infrastructure-consistent behaviour rule it out as a victim.</p>
+    <p><strong>External IPs with high counts (5.63.155.126, 45.8.124.233):</strong> These are not victims — they are servers responding to connections initiated by 10.3.21.102. You will identify both as C2 infrastructure in Part 3.</p>
+  </div>
+</div>
+
+<div class="box success">
+  <div class="bx-label">✓ Victim confirmed — use this IP for every command from here</div>
+  <p>The victim workstation is <strong>10.3.21.102</strong>. Every tshark command in the rest of this workshop that shows <code>10.3.21.102</code> should use this address. The commands below already have it filled in.</p>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">Also note for Part 3</div>
+  <ul>
+    <li><strong>5.63.155.126</strong> — 1328 packets as a source means this server is sending a lot of data back to the victim. High response volume to one internal host is a C2 or payload delivery indicator.</li>
+    <li><strong>45.8.124.233</strong> — 178 packets. A second external IP with elevated counts. You will see both again when you count HTTPS connections in Task 3.1.</li>
+    <li><strong>185.68.93.4</strong> — 102 packets. A third external destination worth tracking. Note all three — Hancitor uses multiple C2 and delivery servers simultaneously.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task12">Task 1.2 — Identify the Protocols</h2>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">🖥 Wireshark GUI</div><div class="ch-desc">Statistics → Protocol Hierarchy — then 💻 Terminal for the port list</div></div>
+  <div class="cmd-inner">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">In Wireshark (already open from Task 1.1): Statistics → Protocol Hierarchy. This shows a tree of all protocols by packet and byte percentage. Note whether HTTP, TLS, DNS, and SMB are present. Then run the tshark command below in the terminal — it is faster to get a ranked port list from the command line than to read individual packets in the GUI.</p>
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">💻 Terminal — all destination ports used by the victim, ranked</div><div class="tag linux">LINUX</div></div>
+      <pre>tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -Y "ip.src == <span style="color:var(--amber)">10.3.21.102</span>" \
+  -T fields -e tcp.dstport -e udp.dstport \
+  | sort | uniq -c | sort -rn \
+  | tee ~/Desktop/hancitor_output/ports.txt</pre>
+    </div>
+    <div class="box warn" style="margin-top:10px">
+      <div class="bx-label">Replace the placeholder</div>
+      <p>Replace <code>10.3.21.102</code> with the victim IP you identified in Task 1.1. You will do this in every command throughout the workshop.</p>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>Port 80 (HTTP)</strong> — unencrypted. The Hancitor payload download is over HTTP in this capture. Fully readable in the PCAP.</li>
+    <li><strong>Port 443 (HTTPS/TLS)</strong> — Cobalt Strike beaconing uses HTTPS. The payload is encrypted but the certificate, timing, and connection count are not.</li>
+    <li><strong>Port 53 UDP (DNS)</strong> — every external connection starts with a DNS query. High volume or unusual domains here are immediate indicators.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task13">Task 1.3 — DNS Activity</h2>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">💻 Terminal (tshark)</div><div class="ch-desc">Extract all DNS queries from the victim — save to file</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">DNS queries only — responses filtered out</div><div class="tag linux">LINUX</div></div>
+      <pre>tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -Y "dns.flags.response == 0 and ip.src == <span style="color:var(--amber)">10.3.21.102</span>" \
+  -T fields -e dns.qry.name \
+  | sort | uniq \
+  | tee ~/Desktop/hancitor_output/dns_queries.txt</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 You can also view DNS in Wireshark</div>
+      <p>Type <code>dns</code> in the Wireshark filter bar to see all DNS packets. The terminal command above is faster for producing a clean, deduplicated domain list you can scan visually and reference later.</p>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>Domains under .ru or other unfamiliar TLDs</strong> that are not recognisable as legitimate services — Hancitor C2 and its follow-on payloads use attacker-registered domains.</li>
+    <li><strong>api.ipify.org</strong> — a legitimate IP-lookup service, but malware routinely queries it to determine the victim's external IP before establishing C2. Its presence is a strong infection indicator.</li>
+    <li>Domains that appear only once in the entire capture — the one-hit pattern is characteristic of a single-use staging domain or a DGA bootstrap query.</li>
+    <li>Record all suspicious domains now — you will see them again as destinations in Parts 2 and 3.</li>
+  </ul>
+</div>
+
+
+<!-- ═══════════════ PART 2 ═══════════════ -->
+<div class="divider am" id="part2">PART 2 — INFECTION VECTOR</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~30 min · Wireshark display filters, Follow HTTP Stream, Export Objects</p>
+
+<p>You know the victim IP and the suspicious domains. Now trace the infection: find the HTTP download that delivered the Hancitor payload, follow the stream to read the full request and response, and extract and hash the downloaded file.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📦</div><div><div class="ch-title">Why HTTP is recoverable but HTTPS is not</div><div class="ch-sub">Unencrypted traffic is a gift to the analyst</div></div></div>
+  <div class="concept-body">
+    <p>HTTP on port 80 sends the full request and response in plain text. In a PCAP you can read the domain, the URI path, every header, and the complete response body — including the actual file content. Wireshark's Export Objects function reconstructs that file directly from the reassembled TCP stream. You do not need access to the victim's disk at all.</p>
+    <p>HTTPS hides the payload behind TLS. You can see the destination IP, the port, the TLS certificate, and the byte volume — but not the content. This is why the HTTP Hancitor download in this capture is particularly valuable: it gives you the file before the attacker switched to an encrypted channel for C2.</p>
+  </div>
+</div>
+
+<h2 class="sec">Task 2.1 — Filter for HTTP GET Requests</h2>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">🖥 Wireshark GUI</div><div class="ch-desc">Type filter in the green bar — then 💻 Terminal to save the hostname list</div></div>
+  <div class="cmd-inner">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">In Wireshark, type the filter below directly into the <strong>green filter bar</strong> at the top of the window and press Enter. The packet list narrows immediately. Then run the tshark command to extract and save the full hostname and URI list — you will need it in Tasks 2.2 and 2.3.</p>
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">🖥 Paste into the Wireshark green filter bar</div><div class="tag ws">WIRESHARK FILTER</div></div>
+      <pre>http.request.method == "GET" and ip.src == <span style="color:var(--amber)">10.3.21.102</span></pre>
+    </div>
+    <div class="code-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">💻 Terminal — save all GET hostnames and URIs to file</div><div class="tag linux">LINUX</div></div>
+      <pre>tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -Y "http.request.method == \"GET\" and ip.src == <span style="color:var(--amber)">10.3.21.102</span>" \
+  -T fields -e http.host -e http.request.uri \
+  | tee ~/Desktop/hancitor_output/http_gets.txt</pre>
+    </div>
+    <div class="code-block out" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Your output will look like this — annotated below</div><div class="tag out">OUTPUT</div></div>
+      <pre><span class="hl-c">api.ipify.org</span>       /                  <span class="hl-a">← IP lookup — malware checking victim's external IP</span>
+<span class="hl-r">bor4omkin.ru</span>        /207.bin            <span class="hl-a">← Hancitor C2 — binary payload download (Stage 2)</span>
+<span class="hl-r">bor4omkin.ru</span>        /207s.bin           <span class="hl-a">← Hancitor C2 — second binary (s = HTTPS config)</span>
+<span class="hl-p">23.227.198.207</span>      /xp3A               <span class="hl-a">← Cobalt Strike stager request</span>
+<span class="hl-r">bor4omkin.ru</span>        /b123.exe           <span class="hl-a">← Mars Stealer executable download</span>
+<span class="hl-p">23.227.198.207:443</span>  /8Gfw               <span class="hl-a">← Cobalt Strike HTTPS beacon config</span>
+<span class="hl-p">23.227.198.207</span>      /dpixel             <span class="hl-a">← Cobalt Strike HTTP beacon (×30+) ← KEY FINDING</span>
+<span class="hl-r">sughicent.com</span>       /blaka.php          <span class="hl-a">← Hancitor C2 checkin</span>
+<span class="hl-r">sughicent.com</span>       /request            <span class="hl-a">← Hancitor C2 task request</span>
+<span class="hl-p">23.227.198.207</span>      /dpixel             <span style="color:#475569">← beacon repeats ~30 more times (C2 polling loop)</span>
+<span class="hl-p">23.227.198.207</span>      /dpixel
+<span class="hl-p">23.227.198.207</span>      /dpixel             <span style="color:#475569">← each /dpixel is one Cobalt Strike beacon cycle</span>
+...</pre>
+    </div>
+  </div>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🔎</div><div><div class="ch-title">Reading the GET list — what each line tells you</div><div class="ch-sub">The full infection chain is visible in this one output</div></div></div>
+  <div class="concept-body">
+    <p><strong>api.ipify.org /</strong> — a legitimate public IP-lookup service. Malware queries this as its first action to determine the victim's external IP address, which it sends to the C2 server alongside system information. Its presence alone is a strong infection indicator even before any malicious domain appears.</p>
+    <p><strong>bor4omkin.ru /207.bin and /207s.bin</strong> — Hancitor retrieving its follow-on payloads from its own C2 domain. The <code>.bin</code> extension is a common evasion technique — a binary file named <code>.bin</code> is less likely to be blocked by a proxy filtering on file extension than a <code>.exe</code>. The <code>s</code> suffix on the second request typically indicates an HTTPS-specific configuration variant.</p>
+    <p><strong>bor4omkin.ru /b123.exe</strong> — this is the Mars Stealer executable being downloaded. Unlike the <code>.bin</code> files, this one uses the <code>.exe</code> extension openly — by this point in the infection chain, Hancitor has already established that the host is a viable target in an Active Directory environment and proceeds with the full credential-harvesting payload.</p>
+    <p><strong>23.227.198.207 /xp3A and /8Gfw</strong> — Cobalt Strike stager requests. These short, random-looking URIs are characteristic of Cobalt Strike's default HTTP stager profile. The victim is downloading the Cobalt Strike beacon shellcode that will run in memory.</p>
+    <p><strong>23.227.198.207 /dpixel — repeated ~30+ times</strong> — this is the Cobalt Strike HTTP beacon in its polling loop. The URI <code>/dpixel</code> is a well-documented default Cobalt Strike malleable C2 profile path. Each GET to <code>/dpixel</code> is one beacon cycle: the implant sends a small request, receives any pending commands, then sleeps before repeating. You will measure this interval precisely in Task 3.2. The repetition here confirms sustained C2 communication throughout the capture window.</p>
+    <p><strong>sughicent.com /blaka.php and /request</strong> — separate Hancitor C2 check-ins using a different domain. Hancitor uses multiple C2 domains simultaneously for redundancy — if one is blocked, the others continue to function. Both domains were visible in your dns_queries.txt from Task 1.3.</p>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to take into Task 2.2</div>
+  <ul>
+    <li><strong>Follow the stream for bor4omkin.ru /b123.exe</strong> — this is the Mars Stealer executable. It is the most forensically significant download because it is named with a <code>.exe</code> extension, making it the clearest malware artefact to extract in Task 2.3.</li>
+    <li><strong>Note the /dpixel pattern</strong> — you will return to 23.227.198.207 in Part 3 when you measure the beacon interval from SYN timestamps. The repeated /dpixel GETs you see here are the same C2 sessions you will time.</li>
+    <li><strong>Note both C2 domains</strong> — bor4omkin.ru and sughicent.com. Both appeared in your dns_queries.txt. Both are now confirmed as active C2 infrastructure in the HTTP GET list.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task22">Task 2.2 — Follow the HTTP Stream</h2>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">🖥 Wireshark GUI only</div><div class="ch-desc">Right-click the GET packet → Follow → HTTP Stream</div></div>
+  <div class="cmd-inner">
+    <div class="roadmap" style="margin:8px 0;border-left-color:rgba(34,211,238,0.25)">
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">1</div><div><div class="rm-title" style="font-size:13.5px">In the Wireshark packet list, find the GET request for <code>bor4omkin.ru /b123.exe</code></div><div class="rm-desc">Apply the filter <code>http.request.uri contains "b123"</code> in the green bar to jump straight to it</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">2</div><div><div class="rm-title" style="font-size:13.5px">Right-click → Follow → HTTP Stream</div><div class="rm-desc">The full conversation — request headers, response headers, and binary data — opens in a new window</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">3</div><div><div class="rm-title" style="font-size:13.5px">Read the response headers carefully</div><div class="rm-desc">What Content-Type did the server declare? What is the Content-Length? Does Content-Disposition give a filename?</div></div></div>
+    </div>
+    <div class="code-block out" style="margin-top:10px">
+      <div class="cb-top"><div class="lbl">What you will see — representative header structure</div><div class="tag out">HTTP STREAM</div></div>
+      <pre><span class="hl-c">GET /ist/NO_2950435796.zip HTTP/1.1</span>
+Host: geobram.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+...
+
+<span class="hl">HTTP/1.1 200 OK</span>
+<span class="hl-a">Content-Type: application/zip</span>
+Content-Length: 1565849
+Content-Disposition: attachment; filename=NO_2950435796.zip
+...
+[binary payload data]</pre>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>Content-Type: application/zip</strong> — a compressed archive, not a web page. This is the Hancitor payload container.</li>
+    <li><strong>Content-Disposition filename</strong> — the filename as it would appear on the victim's disk when saved. Record it exactly.</li>
+    <li><strong>Content-Length</strong> — the byte size of the download. Record this for the evidence log and the timeline.</li>
+    <li>The User-Agent in the GET request — Hancitor mimics a browser UA to evade proxy-based detection that only flags non-browser processes. Note it but do not rely on it as a detection signal.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task23">Task 2.3 — Extract the File and Hash It</h2>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill am">🖥 Step 1 — Wireshark GUI</div><div class="ch-desc">File → Export Objects → HTTP</div></div>
+  <div class="cmd-inner">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">In Wireshark, go to <strong>File → Export Objects → HTTP</strong>. A window opens listing every file transferred over HTTP in the entire capture — hostname, content type, size, and filename for each one.</p>
+    <div class="roadmap" style="margin:8px 0;border-left-color:rgba(245,158,11,0.25)">
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--amber)">1</div><div><div class="rm-title" style="font-size:13.5px">File → Export Objects → HTTP</div><div class="rm-desc">The Export HTTP Objects window opens. You will see several entries — one will be significantly larger than the others.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--amber)">2</div><div><div class="rm-title" style="font-size:13.5px">Click the Size column header to sort largest first</div><div class="rm-desc">The Hancitor payload ZIP will be at the top — look for <code>NO_2950435796.zip</code> from <code>geobram.com</code>, approximately 1.5 MB.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--amber)">3</div><div><div class="rm-title" style="font-size:13.5px">Click the entry once to select it → click Save</div><div class="rm-desc">Save dialog opens. Navigate to <code>~/Desktop/hancitor_output/</code> and save the file as <code>NO_2950435796.zip</code> — keep the original filename exactly.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--amber)">4</div><div><div class="rm-title" style="font-size:13.5px">Close the Export Objects window — do NOT open or unzip the file</div><div class="rm-desc">This is a real malicious archive. Do not double-click it. Do not unzip it. Go straight to the terminal.</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">💻 Step 2 — Terminal</div><div class="ch-desc">Hash the file immediately — before any further analysis</div></div>
+  <div class="cmd-inner">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Open a terminal and run both hash commands. Do this <strong>before</strong> doing anything else with the file — the hash is your integrity proof that the file has not been modified since it left the PCAP.</p>
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">💻 Run both — MD5 and SHA-256</div><div class="tag linux">LINUX</div></div>
+      <pre>md5sum ~/Desktop/hancitor_output/NO_2950435796.zip
+sha256sum ~/Desktop/hancitor_output/NO_2950435796.zip</pre>
+    </div>
+    <div class="code-block out" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Output format — your hash values will appear like this</div><div class="tag out">OUTPUT</div></div>
+      <pre><span class="hl">a3f2c1d8e9b4076f5c2d1e8a9b3c4f7d</span>  /home/kali/Desktop/hancitor_output/NO_2950435796.zip
+<span class="hl">b7e3f9a1c2d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2</span>  /home/kali/Desktop/hancitor_output/NO_2950435796.zip</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 Your hashes will be different from the example above</div>
+      <p>The example hashes above are illustrative only — your actual values will be different. Write down both your real MD5 and SHA-256 values now. You will paste them into Finding 1 below and into your timeline in Part 5.</p>
+    </div>
+  </div>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill gn">💻 Step 3 — Terminal</div><div class="ch-desc">Record the file details in your evidence log</div></div>
+  <div class="cmd-inner">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Save a complete evidence record for this file in one command. This becomes your evidence log entry — the same information you would record on a paper chain-of-custody form in a real engagement.</p>
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">💻 Write evidence log entry to file</div><div class="tag linux">LINUX</div></div>
+      <pre>echo "=== EVIDENCE LOG ENTRY ===" > ~/Desktop/hancitor_output/evidence_log.txt
+echo "File:     NO_2950435796.zip" >> ~/Desktop/hancitor_output/evidence_log.txt
+echo "Source:   geobram.com — HTTP GET /ist/NO_2950435796.zip" >> ~/Desktop/hancitor_output/evidence_log.txt
+echo "Size:     1565849 bytes (from Content-Length header)" >> ~/Desktop/hancitor_output/evidence_log.txt
+echo "Extracted: $(date -u)" >> ~/Desktop/hancitor_output/evidence_log.txt
+echo "Tool:     Wireshark Export Objects → HTTP" >> ~/Desktop/hancitor_output/evidence_log.txt
+echo "MD5:      $(md5sum ~/Desktop/hancitor_output/NO_2950435796.zip | awk '{print $1}')" >> ~/Desktop/hancitor_output/evidence_log.txt
+echo "SHA-256:  $(sha256sum ~/Desktop/hancitor_output/NO_2950435796.zip | awk '{print $1}')" >> ~/Desktop/hancitor_output/evidence_log.txt
+echo "Analyst:  $(whoami)" >> ~/Desktop/hancitor_output/evidence_log.txt
+
+# Verify the log was written
+cat ~/Desktop/hancitor_output/evidence_log.txt</pre>
+    </div>
+    <div class="code-block out" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Expected output — your log entry</div><div class="tag out">OUTPUT</div></div>
+      <pre>=== EVIDENCE LOG ENTRY ===
+File:     NO_2950435796.zip
+Source:   geobram.com — HTTP GET /ist/NO_2950435796.zip
+Size:     1565849 bytes (from Content-Length header)
+Extracted: Mon 21 Mar 2022 14:XX:XX UTC
+Tool:     Wireshark Export Objects → HTTP
+MD5:      <span class="hl">[your actual MD5 hash]</span>
+SHA-256:  <span class="hl">[your actual SHA-256 hash]</span>
+Analyst:  kali</pre>
+    </div>
+    <div class="box warn" style="margin-top:10px">
+      <div class="bx-label">⚠️ Why hash before analysis — chain of custody</div>
+      <p>The hash recorded now is the digital fingerprint of the file <strong>at the moment it left the PCAP</strong>. If you ever need to demonstrate that the file you analysed is identical to the one in the capture — to a manager, legal team, or disciplinary panel — you compare the hash on your evidence log to the hash of the file in the PCAP. If they match, the file is untouched. If you only hash after analysis, that proof no longer holds.</p>
+    </div>
+  </div>
+</div>
+
+<div class="flag-box" id="finding1">
+  <div class="fb-label">⚑ Finding 1 — Infection Vector Confirmed from PCAP</div>
+  <div class="fb-val">
+    Download source: [hostname from your http_gets.txt] → [URI path]
+File type: application/zip — Hancitor payload container
+Content-Length: [byte count from HTTP stream]
+Filename: [from Content-Disposition header]
+Extracted file MD5: [from your md5sum output]
+Extracted file SHA-256: [from your sha256sum output]
+Evidence: Wireshark HTTP Stream (Task 2.2) + Export Objects (Task 2.3)
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1204.002 — User Execution: Malicious File.</strong> The victim's workstation made an outbound HTTP GET request and received a binary archive in response. This is Stage 2 delivery — the initial infection (the Word document macro) happened before the capture window but caused this callout. The browser-mimicking User-Agent is a deliberate evasion of proxy-level process filtering. Record your actual values above — every placeholder must be replaced with real output from your terminal before this finding is complete.
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 3 ═══════════════ -->
+<div class="divider rd" id="part3">PART 3 — COMMAND AND CONTROL TRAFFIC</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~25 min · Wireshark, tshark</p>
+
+<p>You already have the answer from Task 2.1. The <code>/dpixel</code> GET requests to <code>23.227.198.207</code> repeated 30+ times in your <code>http_gets.txt</code> — that is the Cobalt Strike HTTP beacon polling loop. In this campaign Cobalt Strike uses <strong>port 80 (HTTP), not port 443 (HTTPS)</strong>. Part 3 confirms this by counting connections and measuring the interval between them.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🔁</div><div><div class="ch-title">HTTP beaconing — not all C2 uses HTTPS</div><div class="ch-sub">Port 80 blends with legitimate web traffic and leaves full content in the PCAP</div></div></div>
+  <div class="concept-body">
+    <p>Cobalt Strike can be configured for HTTP or HTTPS C2. In this campaign it uses HTTP on port 80 with the URI path <code>/dpixel</code> — a well-documented default Cobalt Strike malleable C2 profile path. Using port 80 means the traffic blends with normal web browsing and is permitted outbound on virtually every corporate network. The downside for the attacker is that the full request and response content is visible in the PCAP.</p>
+    <p>A Cobalt Strike beacon wakes on a fixed schedule: GET /dpixel, receive any pending commands in the response body, close, sleep for the configured interval, repeat. The interval is consistent across every cycle with very low variance — completely unlike human browsing which produces irregular, unpredictable gaps.</p>
+  </div>
+</div>
+
+<h2 class="sec">Task 3.1 — Count HTTP Connections to the C2 Server</h2>
+
+<div class="box tip">
+  <div class="bx-label">💡 You already know the C2 IP from Task 2.1</div>
+  <p>Your <code>http_gets.txt</code> shows <code>23.227.198.207</code> with <code>/dpixel</code> repeated many times. That is your C2 server. This task counts those connections precisely and confirms no other IP competes with it for volume.</p>
+</div>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">💻 Terminal (tshark)</div><div class="ch-desc">HTTP connection count per external IP on port 80 — ranked highest first</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Count all port 80 destinations from the victim</div><div class="tag linux">LINUX</div></div>
+      <pre>tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -Y "ip.src == 10.3.21.102 and tcp.dstport == 80" \
+  -T fields -e ip.dst \
+  | sort | uniq -c | sort -rn \
+  | tee ~/Desktop/hancitor_output/http_dests.txt</pre>
+    </div>
+    <div class="code-block out" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Expected output — one IP dominates</div><div class="tag out">OUTPUT</div></div>
+      <pre>    <span class="hl-r">XX  23.227.198.207</span>   ← Cobalt Strike C2 — /dpixel beacon loop
+     X  bor4omkin.ru resolved IP   ← Hancitor C2
+     X  sughicent.com resolved IP  ← Hancitor C2
+    ...</pre>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>23.227.198.207 with the highest count by far</strong> — every <code>/dpixel</code> GET you saw in Task 2.1 is one connection to this IP. The count here confirms the total number of beacon cycles recorded in the capture.</li>
+    <li><strong>Other IPs with lower counts</strong> — these are the Hancitor C2 servers (<code>bor4omkin.ru</code>, <code>sughicent.com</code>) you saw in Task 2.1. Fewer connections because Hancitor checks in less frequently than Cobalt Strike beacons.</li>
+    <li>Record 23.227.198.207 as your C2 IP — you will use it in Tasks 3.2 and 3.3.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task32">Task 3.2 — Measure the Beacon Interval</h2>
+
+<p>Each GET to <code>/dpixel</code> is one beacon cycle. By extracting the timestamp of each SYN packet to <code>23.227.198.207</code> on port 80, you can measure exactly how often the beacon fires and how consistent that interval is.</p>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">💻 Terminal (tshark)</div><div class="ch-desc">SYN timestamps to the C2 IP on port 80 — each SYN = one beacon cycle starting</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Extract timestamps of every SYN to the C2 server</div><div class="tag linux">LINUX</div></div>
+      <pre>tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -Y "ip.dst == 23.227.198.207 and tcp.dstport == 80 and tcp.flags.syn == 1 and tcp.flags.ack == 0" \
+  -T fields -e frame.time_relative \
+  | head -20 \
+  | tee ~/Desktop/hancitor_output/syn_timestamps.txt</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 Calculating the interval</div>
+      <p>Subtract consecutive timestamps: row 2 minus row 1, row 3 minus row 2, and so on. If the differences are consistently similar with low variance, that is a beacon. A human clicking links produces completely irregular gaps. Record at least five consecutive intervals and calculate the average.</p>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>Consistent intervals with low variance</strong> — the beacon interval is set in the Cobalt Strike configuration. Calculate at least five consecutive intervals and note how similar they are.</li>
+    <li><strong>Compare to a Hancitor C2 IP</strong> — run the same command against <code>bor4omkin.ru</code>'s IP and compare the interval pattern. You will see a different frequency but the same regularity — confirming two separate programmatic beaconing relationships in the same capture.</li>
+    <li>Record your average interval — this is the primary quantitative beaconing evidence for your timeline.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task33">Task 3.3 — Identify the C2 Domain</h2>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">🖥 Wireshark GUI</div><div class="ch-desc">Follow the /dpixel HTTP stream to read the full beacon request — OR 💻 Terminal</div></div>
+  <div class="cmd-inner">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Because the Cobalt Strike beacon in this capture uses HTTP not HTTPS, the Host header in each request directly reveals the C2 domain — no certificate inspection needed. You can read it from the HTTP stream or extract it with tshark.</p>
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">🖥 Paste into Wireshark green filter bar — then read the Host header</div><div class="tag ws">WIRESHARK FILTER</div></div>
+      <pre>http.request.uri == "/dpixel" and ip.dst == 23.227.198.207</pre>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:10px">Click any packet → expand <strong>Hypertext Transfer Protocol → Host</strong> in the detail pane. The Host header contains the domain name the malware is using for C2.</p>
+    <div class="code-block" style="margin-top:10px">
+      <div class="cb-top"><div class="lbl">💻 Terminal — extract the C2 domain from the HTTP Host header directly</div><div class="tag linux">LINUX</div></div>
+      <pre>tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -Y "http.request.uri == \"/dpixel\"" \
+  -T fields -e http.host | sort | uniq</pre>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>The domain in the HTTP Host header</strong> — because the beacon uses plain HTTP, the C2 domain is in every request in clear text. There is no certificate to decode, no SNI to extract — the domain is right there in <code>http.host</code>.</li>
+    <li><strong>Cross-reference with dns_queries.txt from Task 1.3</strong> — the domain you find here should match one of the suspicious domains you flagged earlier. That is corroboration: the DNS triage and the HTTP content analysis independently point to the same attacker infrastructure.</li>
+    <li>Record the domain — this is the C2 domain name for your timeline. Together with the IP (23.227.198.207), the URI (/dpixel), and the beacon interval from Task 3.2, this fully documents the Cobalt Strike C2 channel.</li>
+  </ul>
+</div>
+
+<div class="flag-box" id="finding2">
+  <div class="fb-label">⚑ Finding 2 — C2 Infrastructure Confirmed from PCAP</div>
+  <div class="fb-val">
+    Primary C2 IP: 23.227.198.207 — [connection count from http_dests.txt] HTTP connections on port 80
+C2 beacon URI: /dpixel — Cobalt Strike default malleable C2 profile path
+C2 domain: [from http.host header in Task 3.3] — visible in plaintext because beacon uses HTTP
+Beacon interval: [calculated from syn_timestamps.txt] seconds average
+Interval variance: [calculated] — low variance confirms programmatic beaconing
+Evidence: tshark port 80 destination count + SYN timestamps + HTTP Host header
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1071.001 — Application Layer Protocol: Web Protocols.</strong> Cobalt Strike in this campaign uses HTTP on port 80, not HTTPS. Port 80 is permitted outbound on virtually all corporate networks — and because the traffic is unencrypted, the full beacon request including the Host header and URI is visible in the PCAP. The /dpixel URI path is a well-documented Cobalt Strike malleable C2 default. Replace the bracketed values with your actual measured numbers before this finding is complete.
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 4 ═══════════════ -->
+<div class="divider vi" id="part4">PART 4 — FLOW ANALYSIS: CONVERSATION STATISTICS</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~20 min · tshark -z conv,tcp</p>
+
+<p>Parts 1–3 analysed individual packets and streams. Part 4 looks at the traffic from a higher level: which host pairs communicated, how much data moved between them, and how many separate sessions were established. This is what NetFlow does — and tshark can produce the same data directly from the PCAP using its built-in conversation statistics feature.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📊</div><div><div class="ch-title">tshark -z conv,tcp — the PCAP's built-in flow view</div><div class="ch-sub">Same fields as NetFlow, derived directly from the capture</div></div></div>
+  <div class="concept-body">
+    <p>The <code>-z conv,tcp</code> flag tells tshark to compute conversation statistics across the whole capture: for every unique pair of IP:port endpoints, it reports the address pair, total frames sent each direction, total bytes each direction, and the relative start time and duration of the conversation. These are exactly the fields in a NetFlow record — Source IP, Destination IP, ports, bytes, packets — produced from the PCAP itself without any separate collection infrastructure.</p>
+    <p>This is important for two reasons. First, it surfaces the full communication picture in one command without requiring you to read every packet. Second, it is derived from the same evidence file as everything else in this workshop — there is no fabricated data and no separate file to verify.</p>
+  </div>
+</div>
+
+<h2 class="sec">Task 4.1 — Generate TCP Conversation Statistics</h2>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill">💻 Terminal (tshark)</div><div class="ch-desc">Full TCP conversation statistics — no Wireshark needed for this part</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">Save the full output — then filter it</div><div class="tag linux">LINUX</div></div>
+      <pre>tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -q -z conv,tcp \
+  | tee ~/Desktop/hancitor_output/tcp_conversations.txt</pre>
+    </div>
+    <div class="code-block out" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Output format — one row per unique IP:port pair conversation</div><div class="tag out">OUTPUT FORMAT</div></div>
+      <pre>TCP Conversations
+Filter:&lt;No Filter&gt;
+                                           |       &lt;-      | |       -&gt;      | |     Total     |    Relative    |   Duration   |
+                    Address A          Port A  Address B          Port B    Frames  Bytes   Frames  Bytes  Frames  Bytes       Start             Seconds
+<span class="hl-r">10.3.21.102    49XXX  23.227.198.207  80     NNN    NNNN   NNN    NNNN    NNN   NNNN   N.NNN          N.NNN</span>
+...</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 Filtering the output</div>
+      <p>The full conversation list may contain hundreds of rows. Use grep to isolate what matters:</p>
+    </div>
+    <div class="code-block" style="margin-top:8px">
+      <div class="cb-top"><div class="lbl">Filter saved output for specific IPs</div><div class="tag linux">LINUX</div></div>
+      <pre># Conversations involving the victim workstation
+grep "<span style="color:var(--amber)">10.3.21.102</span>" ~/Desktop/hancitor_output/tcp_conversations.txt
+
+# Sort by total bytes (column 9 approximately) to find largest transfers
+# Look for asymmetric byte counts — large one direction, small the other</pre>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>The C2 IP from Part 3 appearing with a high frame count</strong> — this corroborates the beaconing analysis. Many separate conversations to the same IP confirms periodic short connections rather than one sustained session.</li>
+    <li><strong>Conversations with asymmetric byte counts</strong> — many bytes in one direction and few in the other. A large download (many bytes received) is Part 2's payload. A sustained pattern of small sends and moderate receives is C2 beaconing. A single burst of large outbound bytes is potential exfiltration.</li>
+    <li><strong>Mars Stealer exfiltration</strong> — Mars Stealer sends harvested credentials and browser data back to its own C2 server. Look for a conversation to an external IP with large outbound bytes that is not your primary Cobalt Strike C2 IP.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task42">Task 4.2 — Identify Mars Stealer Activity</h2>
+
+<p>Mars Stealer is a credential harvester. After collecting browser passwords, cookie stores, and cryptocurrency wallet data from the victim's disk, it transmits everything to its own C2. In network evidence this appears as a single burst of outbound data to an external IP on a non-standard port.</p>
+
+<div class="cmd-wrap">
+  <div class="cmd-header"><div class="ch-pill gn">💻 Terminal (tshark)</div><div class="ch-desc">Aggregate outbound bytes per external destination from the victim</div></div>
+  <div class="cmd-inner">
+    <div class="code-block">
+      <div class="cb-top"><div class="lbl">All TCP conversations from the victim — then identify outliers</div><div class="tag linux">LINUX</div></div>
+      <pre># Look at the Bytes A->B column for conversations originating from the victim
+# Cross-reference destination IPs with your dns_queries.txt
+# Mars Stealer often uses non-standard ports or HTTP to exfiltrate
+
+tshark -r ~/Desktop/2022-03-21-Hancitor-with-Cobalt-Strike-and-Mars-Stealer.pcap \
+  -Y "ip.src == <span style="color:var(--amber)">10.3.21.102</span>" \
+  -T fields -e ip.dst -e tcp.dstport -e frame.len \
+  | awk '{sum[$1":"$2]+=$3} END {for(k in sum) print sum[k], k}' \
+  | sort -rn | head -20 \
+  | tee ~/Desktop/hancitor_output/outbound_bytes_by_dest.txt</pre>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>A destination IP with large outbound bytes that is different from your Cobalt Strike C2 IP</strong> — this is a candidate Mars Stealer exfiltration endpoint. Cross-reference it against your dns_queries.txt to find the associated domain.</li>
+    <li><strong>Non-standard destination ports</strong> — Mars Stealer has used various ports in different campaigns. A large outbound transfer on an unusual port is more suspicious than the same transfer on port 443.</li>
+    <li>Record the destination IP, port, and approximate byte volume — these go into the timeline as credential exfiltration evidence.</li>
+  </ul>
+</div>
+
+<div class="flag-box" id="finding3">
+  <div class="fb-label">⚑ Finding 3 — Follow-On Payload Activity from PCAP Flow Statistics</div>
+  <div class="fb-val">
+    Cobalt Strike C2: [IP from Part 3] — [frame count] conversations — corroborated by tcp_conversations.txt
+Mars Stealer exfiltration candidate: [IP] port [port] — [outbound bytes] bytes outbound
+Associated domain: [from dns_queries.txt cross-reference]
+Evidence: tshark -z conv,tcp (Task 4.1) + outbound byte analysis (Task 4.2)
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1041 — Exfiltration Over C2 Channel</strong> (Mars Stealer credential transmission). The conversation statistics derived from the PCAP give the same information as a NetFlow record — source, destination, ports, and bytes — without requiring any separate collection infrastructure. Every value in this finding comes from the same PCAP file used in all previous parts. Replace all placeholders with your actual measured values.
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 5 ═══════════════ -->
+<div class="divider gn" id="part5">PART 5 — BUILD YOUR INCIDENT TIMELINE</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~20 min · Synthesis — no additional tools required · Submit on WebLearn</p>
+
+<p>You have now completed four parts of evidence collection. Part 5 is yours to build from scratch. There is no table to fill in — you construct the timeline yourself using the findings you recorded in Parts 1–4, following the structure and rules below.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📋</div><div><div class="ch-title">Why you are building this — not filling it in</div><div class="ch-sub">The skill is construction, not completion</div></div></div>
+  <div class="concept-body">
+    <p>A pre-filled template with brackets to replace teaches you to copy values. Building a timeline from scratch teaches you to make decisions: what counts as an event, what order is defensible, what confidence level is honest, what evidence source justifies each claim. Those decisions are what an IR analyst is paid to make.</p>
+    <p>Your timeline will go on the WebLearn discussion board where your peers can read it. Compare your confidence levels, your event ordering, and your MITRE mappings with theirs. There are no identical answers — the same PCAP can produce different but equally valid timelines depending on the analyst's judgement calls. That variation is the point of the discussion.</p>
+  </div>
+</div>
+
+<h2 class="sec">The Five Rules for a Defensible Timeline</h2>
+
+<div class="roadmap" style="margin-top:16px">
+  <div class="rm-item"><div class="rm-step">Rule 1</div><div><div class="rm-title">Every row must have an evidence source</div><div class="rm-desc">Name the specific file or tool output that supports each event. "tshark output" is not specific enough. "tshark SYN timestamps — file: syn_timestamps.txt, rows 1–5" is. If you cannot name the source, the row does not belong in the timeline.</div></div></div>
+  <div class="rm-item"><div class="rm-step">Rule 2</div><div><div class="rm-title">Timestamps come from the PCAP — not from the scenario</div><div class="rm-desc">Use the HTTP Date header, the relative frame timestamps from tshark, or the conversation start times from -z conv,tcp. Events that happened before the capture window (the Word document delivery) get a relative label like "T-0 (pre-capture)" — not an invented time.</div></div></div>
+  <div class="rm-item"><div class="rm-step">Rule 3</div><div><div class="rm-title">Confidence levels must be honest</div><div class="rm-desc">High = you have a direct timestamp or artefact from this PCAP. Medium = you are inferring ordering from logical dependency (C2 requires execution, which requires download). Low = you are citing known malware TTPs with no direct PCAP evidence. Never assign High to an inference.</div></div></div>
+  <div class="rm-item"><div class="rm-step">Rule 4</div><div><div class="rm-title">Include Low-confidence events — but label them</div><div class="rm-desc">Mars Stealer is documented to harvest credentials from browser stores. You did not observe this directly in the PCAP. Include it anyway — at Low confidence, sourced to threat intelligence. Omitting it leaves a remediation gap. Labelling it honestly preserves the integrity of your High-confidence rows.</div></div></div>
+  <div class="rm-item rt"><div class="rm-step">Rule 5</div><div><div class="rm-title">Map every event to MITRE ATT&CK</div><div class="rm-desc">Use the MITRE ATT&CK Enterprise matrix. Each event maps to a Tactic (the goal) and a Technique (the method). For example: Initial Access → T1566.001 Phishing. Command and Control → T1071.001 Web Protocols. Look up the correct technique IDs — do not guess.</div></div></div>
+</div>
+
+<h2 class="sec">Your Timeline Structure</h2>
+
+<p>Build your timeline as a table with these five columns. You can create it in any tool available to you — a text file, a spreadsheet, a Word document, or typed directly into the WebLearn discussion post.</p>
+
+<div class="box info">
+  <div class="bx-label">📐 Required columns — include all five</div>
+  <p><strong>1. Timestamp / Order</strong> — UTC time from the PCAP where available, relative label (T-0, T-1, etc.) where not.</p>
+  <p><strong>2. Event</strong> — one sentence describing exactly what happened. Be specific: name the IP, the file, the port, the byte count.</p>
+  <p><strong>3. Evidence Source</strong> — the specific tool output, command, or Wireshark view that supports this event. Name the output file where you saved it.</p>
+  <p><strong>4. MITRE ATT&CK</strong> — Technique ID and name. Use the full ID (e.g., T1071.001 not T1071).</p>
+  <p><strong>5. Confidence</strong> — High, Medium, or Low. One word. Your justification for the level goes in the Evidence Source column.</p>
+</div>
+
+<h2 class="sec">What Your Timeline Must Cover</h2>
+
+<p>Your timeline must account for all of the following. How you order them, what timestamps you assign, and what confidence level you apply to each is your analytical judgement.</p>
+
+<div class="look-for">
+  <div class="lf-head">Events to include — at minimum</div>
+  <ul>
+    <li><strong>Initial infection</strong> — the Word document delivery. This is pre-capture. What confidence level does that warrant, and why?</li>
+    <li><strong>The Hancitor HTTP download</strong> — you have the URL, the filename, the byte count, and the hash. All four go in the event description. The timestamp comes from the HTTP Date header you read in Task 2.2.</li>
+    <li><strong>First Cobalt Strike C2 beacon</strong> — you have the C2 IP, the TLS domain, and the beacon interval. The timestamp comes from your syn_timestamps.txt first entry.</li>
+    <li><strong>Sustained beaconing</strong> — this is a separate event from the first beacon. How many sessions? Over what window? This data is in your http_dests.txt and tcp_conversations.txt.</li>
+    <li><strong>Mars Stealer credential harvesting</strong> — no direct PCAP evidence of the harvesting itself. What confidence level, and what is your source?</li>
+    <li><strong>Credential exfiltration</strong> — you have an IP, a port, and a byte count from Task 4.2. This is directly evidenced. What confidence level does it get?</li>
+    <li><strong>Any additional findings</strong> from your own analysis that are not listed above. If you found something in the PCAP that surprised you, it goes in the timeline.</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <div class="bx-label">⚠️ Do not copy a timeline from another student</div>
+  <p>Your event descriptions must contain your actual values from your own terminal output — your specific hash, your measured beacon interval, your byte counts. Two students running the same PCAP will get the same numbers, but the wording, confidence assignments, and ordering decisions should reflect your own reasoning. The discussion is more interesting when timelines differ slightly — that is the comparison you are being asked to make.</p>
+</div>
+
+<h2 class="sec">Submit on WebLearn</h2>
+
+<div class="scenario-card" style="border-color:rgba(16,185,129,0.45);border-left-color:var(--green)">
+  <div class="sc-ref" style="color:rgba(16,185,129,0.6)">// Submission — CC7007 WebLearn Discussion Board</div>
+  <div class="sc-body">
+    <p>Post your completed incident timeline to the <strong>CC7007 WebLearn discussion board</strong> for this workshop session. Your post should include:</p>
+    <p><strong>1. Your timeline table</strong> — all five columns, all required events, real values from your investigation output.</p>
+    <p><strong>2. One paragraph of reflection</strong> — which finding were you most confident in and why? Which were you least confident in and why? Was there anything in the PCAP you could not explain?</p>
+    <p><strong>3. One question for the group</strong> — something you are unsure about, a decision you made that you want others to challenge, or a finding you want to compare against what others found.</p>
+    <p>Read at least two posts from your peers before the next session. You do not need to agree with their confidence levels or their event ordering — but you should be able to explain why yours differs.</p>
+  </div>
+</div>
+
+
+<!-- ═══════════════ RECAP ═══════════════ -->
+<div class="divider" id="recap">📋 WHAT DID THIS INVESTIGATION DEMONSTRATE?</div>
+
+<div class="recap-grid">
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(34,211,238,0.2);border-left:4px solid var(--cyan)">
+    <div class="rc-title" style="color:var(--cyan)">1 — Triage first prevents missed findings</div>
+    <div class="rc-body">Hancitor in this capture involves three malware families and multiple C2 channels. Going straight to a known-bad filter would have surfaced one of them and missed the rest. The two-minute Statistics → Endpoints pass reveals the full scope before any targeted analysis begins.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(236,72,153,0.2);border-left:4px solid var(--pink)">
+    <div class="rc-title" style="color:var(--pink-l)">2 — HTTP is fully recoverable; HTTPS is partially recoverable</div>
+    <div class="rc-body">The Hancitor download was over HTTP — you recovered the domain, the URI, the Content-Type, and the actual file from the PCAP with no access to the victim's disk. The Cobalt Strike C2 used HTTPS — the payload is hidden, but the destination IP, the certificate domain, and the beacon timing are all in clear text and equally evidential.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,0.2);border-left:4px solid var(--amber)">
+    <div class="rc-title" style="color:var(--amber-l)">3 — Beacon timing is detectable without specialist tools</div>
+    <div class="rc-body">RITA automates beacon detection statistically. The underlying observation — SYN packet interval regularity — is simple enough to do with tshark and arithmetic. Understanding the mechanism, not just running the tool, is what lets you explain and defend a beaconing finding to a legal team or a sceptical manager.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(16,185,129,0.2);border-left:4px solid var(--green)">
+    <div class="rc-title" style="color:var(--green-l)">4 — tshark conversation stats are flow data from the capture itself</div>
+    <div class="rc-body">You did not need a separate NetFlow collector or a fabricated table to get flow-level visibility. The <code>-z conv,tcp</code> flag produces the same information — IP pairs, ports, bytes, packet counts — from the PCAP you already had. This is evidence derived from the source file, not from a separate system that could have its own configuration or collection gaps.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(124,58,237,0.2);border-left:4px solid var(--violet)">
+    <div class="rc-title" style="color:var(--violet-l)">5 — Building a timeline is an analytical act, not a completion exercise</div>
+    <div class="rc-body">Filling in a pre-built table teaches you to copy values. Building one from scratch teaches you to make decisions: what counts as a distinct event, what ordering is defensible, what confidence level is honest. Two analysts working the same PCAP may order events differently or assign different confidence levels — and both can be correct if the reasoning is sound. That variation is why the WebLearn discussion exists.</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ QUIZ ═══════════════ -->
+<div class="divider am" id="quiz">📝 KNOWLEDGE CHECK</div>
+<p style="color:var(--muted);font-size:14px;font-style:italic;margin-bottom:18px">Five questions. One correct answer per question. Based on this workshop only — no outside knowledge required.</p>
+
+<div class="quiz-progress">
+  <span class="qp-lbl">Progress</span>
+  <div class="qp-dot" id="dot-0"></div>
+  <div class="qp-dot" id="dot-1"></div>
+  <div class="qp-dot" id="dot-2"></div>
+  <div class="qp-dot" id="dot-3"></div>
+  <div class="qp-dot" id="dot-4"></div>
+</div>
+
+<div class="qcard" id="qc-0">
+  <div class="qcard-head">
+    <div class="q-tag">Question 1</div>
+    <div class="q-text">In Task 1.1 you identified the victim workstation from tshark output without using the scenario brief. What made 10.3.21.102 identifiable as the compromised machine rather than 10.3.21.3?</div>
+  </div>
+  <div class="q-opts" id="qo-0">
+    <button class="q-opt" onclick="ans(0,0,false)"><span class="opt-let">A</span><span class="opt-txt">10.3.21.102 had the highest total packet count across all hosts. When an internal host surpasses external servers in traffic volume, that single metric confirms compromise. No further analysis of traffic direction or destination diversity is needed to reach a conclusion.</span></button>
+    <button class="q-opt" onclick="ans(0,1,true)"><span class="opt-let">B</span><span class="opt-txt">10.3.21.102 had the highest count among internal hosts and was connecting to multiple distinct external IPs. 10.3.21.3 had a much lower count consistent with a gateway — a different pattern from a workstation making unsolicited outbound connections to attacker infrastructure.</span></button>
+    <button class="q-opt" onclick="ans(0,2,false)"><span class="opt-let">C</span><span class="opt-txt">10.3.21.102 was the only internal host initiating outbound connections. 10.3.21.3 appeared only as a destination for inbound traffic, ruling it out on directionality alone without needing to consider packet counts or how many external destinations the traffic was aimed at.</span></button>
+    <button class="q-opt" onclick="ans(0,3,false)"><span class="opt-let">D</span><span class="opt-txt">10.3.21.102 was producing NXDOMAIN responses at a high rate, indicating failed DGA domain lookups. 10.3.21.3 appeared at a similar position in the ranking but without that DNS failure pattern, ruling it out as the infected host despite the similar overall packet count.</span></button>
+  </div>
+  <div class="q-fb" id="qf-0"></div>
+</div>
+
+<div class="qcard" id="qc-1">
+  <div class="qcard-head">
+    <div class="q-tag">Question 2</div>
+    <div class="q-text">In Task 2.3 you ran md5sum and sha256sum before doing anything else with the extracted file. Why are both algorithms used and why does the timing matter?</div>
+  </div>
+  <div class="q-opts" id="qo-1">
+    <button class="q-opt" onclick="ans(1,0,false)"><span class="opt-let">A</span><span class="opt-txt">MD5 is required by law enforcement evidence systems and SHA-256 is required for VirusTotal. Running both before analysis ensures compatibility with all downstream platforms regardless of which tool or institution receives the file at a later stage of the investigation.</span></button>
+    <button class="q-opt" onclick="ans(1,1,false)"><span class="opt-let">B</span><span class="opt-txt">Two hashes guard against MD5 collisions where an attacker could produce a file with the same MD5 but different content. Timing is irrelevant provided hashing completes before the file leaves the environment, since internal analysis tools cannot alter the file content itself.</span></button>
+    <button class="q-opt" onclick="ans(1,2,true)"><span class="opt-let">C</span><span class="opt-txt">MD5 is fast and widely supported; SHA-256 is cryptographically stronger. Together they meet most legal requirements. Timing matters because a hash taken right after extraction proves the file was not modified during analysis. A hash recorded only afterwards cannot prove that.</span></button>
+    <button class="q-opt" onclick="ans(1,3,false)"><span class="opt-let">D</span><span class="opt-txt">The hash confirms the file was not truncated when Wireshark wrote it to disk. Running both algorithms doubles the chance of catching a write error during extraction. Timing is irrelevant here — a post-analysis hash would detect the same type of corruption just as effectively.</span></button>
+  </div>
+  <div class="q-fb" id="qf-1"></div>
+</div>
+
+<div class="qcard" id="qc-2">
+  <div class="qcard-head">
+    <div class="q-tag">Question 3</div>
+    <div class="q-text">Task 3.1 found one IP with far more HTTPS connections than any other. Task 3.2 measured the interval between SYN packets to that IP. Why are both needed — why is count alone not enough?</div>
+  </div>
+  <div class="q-opts" id="qo-2">
+    <button class="q-opt" onclick="ans(2,0,false)"><span class="opt-let">A</span><span class="opt-txt">Count alone is sufficient. No legitimate application generates hundreds of separate HTTPS sessions to the same server over two hours from one workstation. Once the number exceeds any plausible legitimate threshold, interval analysis adds nothing the count has not already proven.</span></button>
+    <button class="q-opt" onclick="ans(2,1,false)"><span class="opt-let">B</span><span class="opt-txt">The TLS certificate from Task 3.3 is what makes the count meaningful. Without certificate confirmation, a high count to an unknown IP could be a CDN. Interval analysis only becomes relevant after the destination is already independently verified as attacker infrastructure.</span></button>
+    <button class="q-opt" onclick="ans(2,2,false)"><span class="opt-let">C</span><span class="opt-txt">Count is unreliable because it varies with capture duration — a longer window always gives a higher number. Interval measurement is the only valid indicator because the beacon sleep timer is fixed in the malware config and does not change regardless of how long the capture ran.</span></button>
+    <button class="q-opt" onclick="ans(2,3,true)"><span class="opt-let">D</span><span class="opt-txt">A high count could be a CDN or streaming service — both generate many short HTTPS sessions. Timing regularity distinguishes a beacon: human traffic produces irregular gaps while an implant runs on a fixed timer. High count combined with low variance makes the case conclusive.</span></button>
+  </div>
+  <div class="q-fb" id="qf-2"></div>
+</div>
+
+<div class="qcard" id="qc-3">
+  <div class="qcard-head">
+    <div class="q-tag">Question 4</div>
+    <div class="q-text">In Part 4 you used <code>tshark -z conv,tcp</code> for flow statistics. A colleague says Parts 1–3 already covered everything. What is the strongest counterargument?</div>
+  </div>
+  <div class="q-opts" id="qo-3">
+    <button class="q-opt" onclick="ans(3,0,false)"><span class="opt-let">A</span><span class="opt-txt">Parts 1–3 only filtered on ip.src. The <code>-z conv,tcp</code> flag processes both directions, surfacing server-initiated connections and pivot traffic from external hosts that earlier one-directional filters excluded — activity that is otherwise invisible in the capture.</span></button>
+    <button class="q-opt" onclick="ans(3,1,true)"><span class="opt-let">B</span><span class="opt-txt">Conversation stats give aggregate byte volumes per destination in one command. Mars Stealer exfiltration — a large outbound transfer to a different IP — stands out immediately when sorted. Spotting it in the packet list would require already knowing the right IP to filter for.</span></button>
+    <button class="q-opt" onclick="ans(3,2,false)"><span class="opt-let">C</span><span class="opt-txt">Parts 1–3 only covered TCP. The <code>-z conv,tcp</code> flag surfaces UDP conversations that Wireshark's filters excluded, revealing DNS tunnelling and other UDP-based exfiltration channels that the protocol-specific analysis across all earlier parts was unable to detect.</span></button>
+    <button class="q-opt" onclick="ans(3,3,false)"><span class="opt-let">D</span><span class="opt-txt">The <code>-z conv,tcp</code> flag reconstructs TLS keys from the handshake data, decrypting the Cobalt Strike C2 channel. This exposes the actual commands sent during the capture window — content that no display filter in Parts 1–3 could access through standard Wireshark analysis.</span></button>
+  </div>
+  <div class="q-fb" id="qf-3"></div>
+</div>
+
+<div class="qcard" id="qc-4">
+  <div class="qcard-head">
+    <div class="q-tag">Question 5</div>
+    <div class="q-text">The Part 5 timeline includes a credential harvesting row at Medium confidence sourced from Mars Stealer TTPs, not direct PCAP evidence. A colleague argues it should be removed. What is the correct position?</div>
+  </div>
+  <div class="q-opts" id="qo-4">
+    <button class="q-opt" onclick="ans(4,0,false)"><span class="opt-let">A</span><span class="opt-txt">The colleague is correct. A disciplinary timeline must contain only directly evidenced events. TTP-based inference rows introduce speculation that an opposing party can exploit to challenge the credibility of every High-confidence row that appears alongside them in the document.</span></button>
+    <button class="q-opt" onclick="ans(4,1,false)"><span class="opt-let">B</span><span class="opt-txt">The row should stay but be upgraded to High confidence. Task 4.2 confirmed Mars Stealer transmitted data outbound, meaning harvesting logically occurred immediately before. A certainty derived from confirmed downstream evidence should be recorded as High, not Medium confidence.</span></button>
+    <button class="q-opt" onclick="ans(4,2,false)"><span class="opt-let">C</span><span class="opt-txt">The row should move to a Threat Intelligence appendix. This keeps the main timeline limited to directly evidenced events while making the TTP information available to the IR team and legal counsel, who need the full picture to assess the true scope of the compromise.</span></button>
+    <button class="q-opt" onclick="ans(4,3,true)"><span class="opt-let">D</span><span class="opt-txt">The row stays at Medium. Removing it means no one audits credential stores or resets passwords on the victim machine. The confidence label does the work — it marks this as a TTP inference rather than direct evidence so readers weight it correctly and still act on the risk.</span></button>
+  </div>
+  <div class="q-fb" id="qf-4"></div>
+</div>
+
+
+<div class="scoreboard" id="scoreboard">
+  <div class="sb-t">// Investigation Complete</div>
+  <div class="sb-n" id="sb-num"></div>
+  <div class="sb-of">CORRECT OUT OF 5</div>
+  <div class="sb-msg" id="sb-msg"></div>
+  <button class="sb-btn" onclick="resetQuiz()">↺ Try Again</button>
+</div>
+
+<div style="height:50px"></div>
+</main>
+</div>
+
+<footer>
+  <div>
+    <div class="f-course">CC7007 · Network Traffic Analysis Workshop</div>
+    <div class="f-mod">Hancitor · Cobalt Strike · Mars Stealer</div>
+  </div>
+  <div class="f-right">
+    <div class="f-name">Real PCAP · No Fabricated Data · malware-traffic-analysis.net</div>
+    <div class="f-sub">Wireshark · tshark · Kali Linux 2025</div>
+    <div style="font-family:var(--head);font-size:15px;font-weight:700;color:var(--cyan);margin-top:6px">Fatma Yasmine Loumachi</div>
+  </div>
+</footer>
+
+<script>
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      const m = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
+      if (m) m.classList.add('active');
+    }
+  });
+}, { rootMargin: '-10% 0px -70% 0px' });
+document.querySelectorAll('[id]').forEach(el => obs.observe(el));
+
+const CORRECT = [1, 2, 3, 1, 3];
+const TOTAL = 5;
+let score = 0, done = new Array(TOTAL).fill(false);
+
+const FB = [
+  {
+    c: "Correct. 10.3.21.102 had the highest packet count among internal hosts and was making connections to multiple distinct external IPs — attacker infrastructure, not a stable set of known services. 10.3.21.3 had a much lower count and behaviour consistent with a gateway. The combination of high count and diverse external destinations is the behavioural signature of a compromised machine, and it does not require the scenario brief to identify.",
+    w: "Not quite. Being the only internal IP or having the highest total count are not reliable signals on their own — 10.3.21.3 is also internal, and high byte counts can have innocent explanations. The identifying combination is high packet count among internal hosts plus connections to multiple distinct external IPs. That pattern — a workstation initiating outbound connections to many different attacker-controlled servers — is what distinguishes a compromised machine from a gateway or a healthy workstation."
+  },
+  {
+    c: "Correct. Both algorithms are used because MD5 is fast and widely supported while SHA-256 is cryptographically stronger — together they satisfy most legal and institutional requirements. The timing is the critical point: a hash taken before analysis proves the file was not modified during the analytical process. A hash taken after analysis cannot rule out that a tool, the OS, or another analyst altered the file, making the provenance of the extracted artefact challengeable.",
+    w: "Not quite. The hash is not primarily about corruption detection or submission requirements. Its purpose is chain-of-custody: proving that the file you analysed is identical to the file in the PCAP, byte for byte. That proof only holds if the hash is recorded before analysis begins. Two algorithms are used because MD5 and SHA-256 together satisfy most institutional and legal requirements — neither alone is always sufficient depending on the jurisdiction or the organisation's evidence handling policy."
+  },
+  {
+    c: "Correct. High connection count alone could be a CDN, streaming service, or web app — all of which generate many short HTTPS connections legitimately. Timing regularity is what distinguishes beaconing: a malware implant runs on a fixed schedule and produces near-identical intervals, while human and application traffic produces unpredictable gaps. Both measurements together — high count from Task 3.1 plus low interval variance from Task 3.2 — make the beaconing argument conclusive.",
+    w: "Not quite. Connection count and timing regularity are both needed because each addresses a different potential alternative explanation. High count alone could be explained by a legitimate application. Timing regularity alone could theoretically be coincidental over a small sample. Together they form a convergent argument: the same IP receives hundreds of connections at a consistent interval with low variance — a pattern that cannot be produced by human interaction or any legitimate scheduled application."
+  },
+  {
+    c: "Correct. The conversation statistics produce aggregate byte volumes per destination in one command. Mars Stealer exfiltration — a large outbound transfer to an IP that is not the Cobalt Strike C2 — stands out immediately in the sorted output. Finding that same transfer in a scrolling Wireshark packet list, without already knowing which IP to filter for, would require either guessing or examining every external connection individually.",
+    w: "Not quite. The key advantage of conversation statistics is that they aggregate bytes per destination across the entire capture, making outliers immediately visible without any prior knowledge of which IPs to filter for. In Parts 1–3 you applied targeted filters to IPs you had already identified. Conversation statistics surface the ones you had not yet identified — specifically, a large asymmetric outbound transfer to a destination that had not appeared in any earlier analysis step."
+  },
+  {
+    c: "Correct. The row stays at Medium confidence because removing it leaves decision-makers unaware of the credential risk — no password resets, no audit of credential stores. The confidence marking does the necessary work: it tells the reader this is a TTP inference, not direct PCAP evidence, so they can weight it accordingly. A timeline that omits uncertain findings is misleadingly complete; one that marks them honestly gives decision-makers everything they need to act appropriately.",
+    w: "Not quite. Removing the row creates a gap that directly affects remediation decisions. Upgrading it to High confidence overstates what the evidence actually shows — the exfiltration was observed, but the harvesting that preceded it was not captured on the wire. The right position is Medium confidence with a clear source note. This tells the reader: act on this risk, but understand it is inferred from known TTPs rather than observed directly in this capture."
+  }
+];
+
+function ans(q, opt, correct) {
+  if (done[q]) return;
+  done[q] = true;
+  const opts = document.querySelectorAll(`#qo-${q} .q-opt`);
+  const fb = document.getElementById(`qf-${q}`);
+  const card = document.getElementById(`qc-${q}`);
+  const dot = document.getElementById(`dot-${q}`);
+  opts.forEach((b, i) => {
+    b.disabled = true;
+    if (i === opt) b.classList.add(correct ? 'correct' : 'wrong');
+    else if (i === CORRECT[q] && !correct) b.classList.add('correct');
+    else b.classList.add('dimmed');
+  });
+  fb.className = `q-fb show ${correct ? 'cfb' : 'wfb'}`;
+  fb.innerHTML = `<div class="fb-badge">${correct ? '✓ Correct' : '✗ Not quite'}</div>${FB[q][correct ? 'c' : 'w']}`;
+  card.classList.add(correct ? 'ac' : 'aw');
+  dot.classList.add(correct ? 'c' : 'w');
+  if (correct) score++;
+  if (done.every(Boolean)) showScore();
+}
+
+function showScore() {
+  const board = document.getElementById('scoreboard');
+  const num = document.getElementById('sb-num');
+  const msg = document.getElementById('sb-msg');
+  board.classList.add('show');
+  const pct = score / TOTAL;
+  num.textContent = `${score} / ${TOTAL}`;
+  num.style.color = pct === 1 ? 'var(--green)' : pct >= 0.6 ? 'var(--cyan)' : 'var(--amber)';
+  msg.textContent = pct === 1
+    ? "Perfect. You understood not just which commands to run but why each piece of evidence exists and what it proves."
+    : pct >= 0.6
+    ? "Good. Re-read the concept boxes and feedback for the questions you missed — the reasoning behind each technique matters as much as the syntax."
+    : "Work back through the investigation steps. Focus on why each command reveals what it does, not just what the output looks like.";
+  board.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  score = 0;
+  done = new Array(TOTAL).fill(false);
+  for (let i = 0; i < TOTAL; i++) {
+    document.getElementById(`qc-${i}`).classList.remove('ac', 'aw');
+    document.querySelectorAll(`#qo-${i} .q-opt`).forEach(b => {
+      b.disabled = false;
+      b.classList.remove('correct', 'wrong', 'dimmed');
+    });
+    const f = document.getElementById(`qf-${i}`);
+    f.className = 'q-fb'; f.innerHTML = '';
+    document.getElementById(`dot-${i}`).classList.remove('c', 'w');
+  }
+  document.getElementById('scoreboard').classList.remove('show');
+  document.getElementById('quiz').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
