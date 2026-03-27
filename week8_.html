@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC7007 — Malware Investigation with any.run</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark:     #080B10;  --surface:  #0E1520;  --card:     #121A27;  --panel:    #070A0F;
+  --cyan:     #22D3EE;  --cyan-d:   #0891B2;  --green:    #10B981;  --green-l:  #6EE7B7;
+  --amber:    #F59E0B;  --amber-l:  #FDE68A;  --red:      #EF4444;  --red-l:    #FCA5A5;
+  --pink:     #EC4899;  --pink-l:   #F9A8D4;  --violet:   #7C3AED;  --violet-l: #A78BFA;
+  --orange:   #F97316;  --text:     #CBD5E1;  --muted:    #64748B;  --white:    #F8FAFC;
+  --mono: 'JetBrains Mono', monospace;  --head: 'Syne', sans-serif;  --body: 'DM Sans', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.85;display:flex;flex-direction:column;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:242px;background:var(--panel);border-right:1px solid rgba(34,211,238,0.15);overflow-y:auto;z-index:100;padding-bottom:80px}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid rgba(34,211,238,0.12);margin-bottom:4px}
+.sb-week{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--cyan);display:block;margin-bottom:5px;text-transform:uppercase}
+.sb-title{font-family:var(--head);font-size:12.5px;font-weight:700;color:var(--cyan);line-height:1.35}
+.nav-group{padding:12px 18px 3px;font-family:var(--mono);font-size:8px;letter-spacing:2.5px;color:rgba(100,116,139,0.45);text-transform:uppercase}
+.sidebar a{display:block;padding:5px 18px 5px 22px;font-size:12px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all .18s;line-height:1.4}
+.sidebar a:hover,.sidebar a.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(34,211,238,0.04)}
+.sidebar a.flag-a{color:var(--green-l)}
+.sidebar a.flag-a:hover,.sidebar a.flag-a.active{color:var(--green);border-left-color:var(--green);background:rgba(16,185,129,0.05)}
+.layout{display:flex;flex:1}
+.main{margin-left:242px;padding:0 48px 80px;max-width:980px;width:100%}
+
+.hero{background:linear-gradient(150deg,#050709 0%,#071422 55%,#050709 100%);border-bottom:2px solid var(--cyan);padding:54px 48px 46px;margin:0 -48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-40px;width:400px;height:400px;background:radial-gradient(circle,rgba(34,211,238,0.1),transparent 62%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.4);color:var(--cyan);font-family:var(--mono);font-size:10px;letter-spacing:3px;padding:5px 14px;border-radius:3px;margin-bottom:20px;text-transform:uppercase}
+.hero h1{font-family:var(--head);font-size:46px;font-weight:800;color:var(--white);line-height:1.05;margin-bottom:14px}
+.hero h1 em{color:var(--cyan);font-style:normal}
+.hero p.tagline{font-size:14.5px;color:var(--muted);font-weight:300;max-width:620px;margin-bottom:28px;line-height:1.75}
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted)}
+.chip b{font-weight:500}.chip.c b{color:var(--cyan)}.chip.g b{color:var(--green)}.chip.a b{color:var(--amber)}.chip.p b{color:var(--pink)}
+
+.divider{margin:50px 0 22px;padding:12px 22px 12px 26px;background:var(--panel);border:1px solid rgba(34,211,238,0.2);border-left:5px solid var(--cyan);border-radius:0 8px 8px 0;font-family:var(--head);font-size:13.5px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.divider.am{border-left-color:var(--amber);color:var(--amber-l)}
+.divider.gn{border-left-color:var(--green);color:var(--green)}
+.divider.pk{border-left-color:var(--pink);color:var(--pink)}
+.divider.rd{border-left-color:var(--red);color:var(--red-l)}
+.divider.vi{border-left-color:var(--violet);color:var(--violet-l)}
+
+h2.sec{font-family:var(--head);font-size:21px;font-weight:700;color:var(--cyan);margin:28px 0 10px;border-bottom:1px solid rgba(34,211,238,0.18);padding-bottom:6px}
+h3.sub{font-family:var(--head);font-size:13px;font-weight:700;color:var(--pink);letter-spacing:1.5px;text-transform:uppercase;margin:18px 0 8px}
+p{margin-bottom:12px;font-size:14.5px;line-height:1.85}
+strong{color:var(--white);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;color:var(--cyan);background:rgba(34,211,238,0.08);padding:2px 7px;border-radius:3px}
+
+.box{border-radius:8px;padding:14px 18px;margin:12px 0;font-size:13.5px;line-height:1.7}
+.box .bx-label{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;font-weight:700;display:flex;align-items:center;gap:7px}
+.box.tip{background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.22);color:var(--text)}.box.tip .bx-label{color:var(--cyan)}
+.box.warn{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.28);color:#FDE68A}.box.warn .bx-label{color:var(--amber)}
+.box.danger{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.28);color:var(--red-l)}.box.danger .bx-label{color:var(--red)}
+.box.success{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.28);color:var(--green-l)}.box.success .bx-label{color:var(--green)}
+.box.info{background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.28);color:var(--violet-l)}.box.info .bx-label{color:var(--violet-l)}
+.box p{margin:0 0 6px;font-size:13.5px;line-height:1.65}.box p:last-child{margin:0}.box strong{color:var(--white)}
+
+.scenario-card{background:linear-gradient(135deg,#0B0E18,#071522);border:1px solid rgba(34,211,238,0.3);border-left:5px solid var(--cyan);border-radius:8px;padding:26px 30px;margin:16px 0;position:relative;overflow:hidden}
+.scenario-card::after{content:'🕵️';position:absolute;right:18px;top:14px;font-size:36px;opacity:.1}
+.sc-ref{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(34,211,238,0.45);margin-bottom:10px;text-transform:uppercase}
+.sc-body p{color:#C8C8C8;font-size:14.5px;margin-bottom:10px;line-height:1.85}.sc-body p:last-child{margin:0}
+
+.concept{background:var(--card);border:1px solid rgba(34,211,238,0.18);border-radius:10px;margin:15px 0;overflow:hidden}
+.concept-header{background:rgba(34,211,238,0.05);border-bottom:1px solid rgba(34,211,238,0.12);padding:13px 20px;display:flex;align-items:center;gap:12px}
+.ch-icon{font-size:20px}
+.ch-title{font-family:var(--head);font-size:15.5px;font-weight:700;color:var(--cyan)}
+.ch-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.concept-body{padding:18px 22px;font-size:14px;line-height:1.85;color:var(--text)}
+.concept-body p{font-size:14px;margin-bottom:10px}.concept-body p:last-child{margin:0}
+
+.goal-box{background:linear-gradient(135deg,rgba(245,158,11,0.06),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:16px 20px;margin:14px 0}
+.gb-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--amber);text-transform:uppercase;margin-bottom:10px;font-weight:700;display:flex;align-items:center;gap:8px}
+.gb-label::before{content:'🎯'}
+.goal-box ul{list-style:none;padding:0}
+.goal-box ul li{font-size:13.5px;color:var(--amber-l);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(245,158,11,0.08)}
+.goal-box ul li:last-child{border:none}
+.goal-box ul li::before{content:'→';position:absolute;left:0;color:var(--amber)}
+
+/* UI STEP WRAP — replaces cmd-wrap for web UI steps */
+.ui-wrap{margin:16px 0;border:1px solid rgba(34,211,238,0.18);border-radius:8px;overflow:hidden}
+.ui-header{background:rgba(34,211,238,0.06);border-bottom:1px solid rgba(34,211,238,0.12);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.ui-pill{color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:3px 12px;border-radius:12px;flex-shrink:0;background:var(--cyan-d)}
+.ui-pill.gn{background:var(--green)}.ui-pill.am{background:var(--amber);color:#1a0e00}.ui-pill.pk{background:var(--pink)}.ui-pill.rd{background:var(--red)}.ui-pill.vi{background:var(--violet)}
+.ui-desc{font-size:13px;color:var(--text);font-weight:500}
+.ui-inner{padding:14px 18px;background:rgba(255,255,255,0.008)}
+
+/* OUTPUT / ANNOTATION BLOCK */
+.out-block{background:#050709;border:1px solid rgba(34,211,238,0.12);border-left:3px solid var(--cyan);border-radius:6px;overflow:hidden;margin:9px 0}
+.out-block.am{border-left-color:var(--amber)}.out-block.gn{border-left-color:var(--green)}.out-block.pk{border-left-color:var(--pink)}.out-block.rd{border-left-color:var(--red)}.out-block.vi{border-left-color:var(--violet)}
+.ob-top{background:rgba(34,211,238,0.03);border-bottom:1px solid rgba(34,211,238,0.07);padding:5px 14px;display:flex;justify-content:space-between;align-items:center}
+.out-block.am .ob-top{background:rgba(245,158,11,0.04);border-bottom-color:rgba(245,158,11,0.1)}
+.out-block.gn .ob-top{background:rgba(16,185,129,0.04);border-bottom-color:rgba(16,185,129,0.1)}
+.out-block.vi .ob-top{background:rgba(124,58,237,0.04);border-bottom-color:rgba(124,58,237,0.1)}
+.lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(100,116,139,0.5);text-transform:uppercase}
+.tag{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:1px 8px;border-radius:3px}
+.tag.ui{color:var(--cyan);background:rgba(34,211,238,0.1)}.tag.web{color:var(--violet-l);background:rgba(124,58,237,0.12)}.tag.note{color:rgba(100,116,139,0.5);background:rgba(255,255,255,0.04)}
+pre{font-family:var(--mono);font-size:12.5px;color:#00E5A0;line-height:1.8;padding:14px 16px;overflow-x:auto;white-space:pre}
+.out-block.am pre{color:#FDE68A}.out-block.gn pre{color:var(--green-l)}.out-block.pk pre{color:var(--pink-l)}.out-block.rd pre{color:var(--red-l)}.out-block.vi pre{color:var(--violet-l)}
+.hl{color:#00E5A0!important;font-weight:700}.hl-r{color:#FCA5A5!important;font-weight:700}.hl-a{color:#FDE68A!important;font-weight:700}.hl-c{color:#67E8F9!important;font-weight:700}.hl-p{color:#F9A8D4!important;font-weight:700}.hl-v{color:#A78BFA!important;font-weight:700}
+
+.look-for{background:rgba(34,211,238,0.04);border:1px solid rgba(34,211,238,0.2);border-radius:7px;padding:14px 18px;margin:11px 0}
+.lf-head{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.lf-head::before{content:'👁'}
+.look-for ul{list-style:none;padding:0}
+.look-for ul li{font-size:13.5px;color:var(--text);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(255,255,255,0.04)}
+.look-for ul li:last-child{border:none}
+.look-for ul li::before{content:'→';position:absolute;left:0;color:var(--cyan)}
+
+.flag-box{background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(16,185,129,0.02));border:1px solid rgba(16,185,129,0.38);border-left:5px solid var(--green);border-radius:8px;padding:22px 28px;margin:22px 0;position:relative;overflow:hidden}
+.flag-box::after{content:'⚑';position:absolute;right:20px;top:12px;font-size:34px;color:rgba(16,185,129,0.1);pointer-events:none}
+.fb-label{font-family:var(--mono);font-size:9.5px;letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:9px}
+.fb-val{font-family:var(--mono);font-size:12px;color:var(--green);margin-bottom:12px;word-break:break-all;line-height:1.7;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.16);border-radius:5px;padding:10px 14px}
+.fb-why{font-size:13px;color:var(--green-l);line-height:1.7;border-top:1px solid rgba(16,185,129,0.14);padding-top:11px}
+
+.roadmap{border-left:2px solid rgba(34,211,238,0.25);margin:14px 0 24px;padding-left:0}
+.rm-item{display:flex;gap:14px;padding:9px 0 9px 22px;position:relative}
+.rm-item::before{content:'';position:absolute;left:-7px;top:16px;width:12px;height:12px;background:var(--cyan-d);border-radius:50%;border:2px solid var(--dark)}
+.rm-item.rf::before{background:var(--green)}.rm-item.rt::before{background:var(--pink)}.rm-item.ra::before{background:var(--amber)}
+.rm-step{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--cyan);min-width:56px;text-transform:uppercase;margin-top:2px;flex-shrink:0}
+.rm-item.rf .rm-step{color:var(--green)}.rm-item.rt .rm-step{color:var(--pink)}.rm-item.ra .rm-step{color:var(--amber)}
+.rm-title{font-family:var(--head);font-size:15px;font-weight:600;color:var(--white);margin-bottom:2px}
+.rm-desc{font-size:12.5px;color:var(--muted)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 18px}
+.grid-card{background:var(--card);border:1px solid rgba(34,211,238,0.14);border-radius:7px;padding:14px 16px}
+.gc-head{font-family:var(--mono);font-size:12px;color:var(--cyan);margin-bottom:5px}
+.gc-body{font-size:13px;color:var(--muted)}
+
+.recap-grid{display:flex;flex-direction:column;gap:10px;margin:14px 0 22px}
+.recap-card{border-radius:0 8px 8px 0;padding:16px 20px}
+.rc-title{font-family:var(--head);font-size:16px;font-weight:700;margin-bottom:5px}
+.rc-body{font-size:13.5px;line-height:1.65;color:var(--muted)}
+
+/* CLICK STEP */
+.click-step{margin:14px 0;border:1px solid rgba(34,211,238,0.16);border-radius:8px;overflow:hidden}
+.click-head{background:rgba(34,211,238,0.06);border-bottom:1px solid rgba(34,211,238,0.1);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.cs-n{color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;flex-shrink:0;background:var(--cyan-d)}
+.cs-n.gn{background:var(--green)}.cs-n.am{background:var(--amber);color:#1a0e00}.cs-n.vi{background:var(--violet)}.cs-n.rd{background:var(--red)}
+.cs-desc{font-size:13.5px;font-weight:500;color:var(--text)}
+.click-body{padding:14px 18px;background:rgba(255,255,255,0.005)}
+
+/* QUIZ */
+.quiz-progress{display:flex;gap:7px;margin-bottom:18px;align-items:center}
+.qp-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);margin-right:4px;text-transform:uppercase}
+.qp-dot{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:all .3s}
+.qp-dot.c{background:var(--green);border-color:var(--green)}.qp-dot.w{background:var(--red);border-color:var(--red)}
+.qcard{background:var(--card);border:1px solid rgba(34,211,238,0.18);border-radius:10px;margin:13px 0;overflow:hidden;transition:border-color .25s}
+.qcard.ac{border-color:rgba(16,185,129,0.5)}.qcard.aw{border-color:rgba(239,68,68,0.4)}
+.qcard-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.q-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:7px}
+.q-text{font-size:14.5px;font-weight:500;color:var(--white);line-height:1.55}
+.q-opts{padding:12px 20px 16px;display:flex;flex-direction:column;gap:8px}
+.q-opt{display:flex;align-items:flex-start;gap:11px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:10px 13px;cursor:pointer;transition:all .18s;text-align:left;width:100%;font-family:var(--body)}
+.q-opt:hover:not(:disabled){background:rgba(34,211,238,0.07);border-color:rgba(34,211,238,0.38)}
+.q-opt:disabled{cursor:default}
+.opt-let{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,0.06);border-radius:4px;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.opt-txt{font-size:13.5px;color:var(--text);line-height:1.5}
+.q-opt.correct{background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.42)}.q-opt.correct .opt-let{background:var(--green);color:#052E16}.q-opt.correct .opt-txt{color:var(--green-l)}
+.q-opt.wrong{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.35)}.q-opt.wrong .opt-let{background:var(--red);color:var(--white)}.q-opt.wrong .opt-txt{color:var(--red-l);text-decoration:line-through}
+.q-opt.dimmed{opacity:.3}
+.q-fb{display:none;margin:0 20px 16px;border-radius:7px;padding:12px 15px;font-size:13.5px;line-height:1.65;animation:fadeUp .3s ease}
+.q-fb.show{display:block}
+.fb-badge{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-weight:700}
+.q-fb.cfb{background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.25);color:var(--green-l)}.q-fb.cfb .fb-badge{color:var(--green)}
+.q-fb.wfb{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);color:var(--red-l)}.q-fb.wfb .fb-badge{color:var(--red)}
+.scoreboard{display:none;background:var(--panel);border:1px solid rgba(34,211,238,0.35);border-radius:10px;padding:32px;margin:22px 0;text-align:center;animation:fadeUp .4s ease}
+.scoreboard.show{display:block}
+.sb-t{font-family:var(--head);font-size:17px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.sb-n{font-family:var(--head);font-size:62px;font-weight:800;line-height:1;margin-bottom:5px}
+.sb-of{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+.sb-msg{font-size:14.5px;color:var(--text);margin-bottom:24px;font-style:italic}
+.sb-btn{background:var(--cyan-d);color:var(--white);font-family:var(--head);font-size:15px;font-weight:700;padding:10px 28px;border-radius:6px;border:none;cursor:pointer;transition:background .2s}
+.sb-btn:hover{background:var(--cyan);color:var(--dark)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+footer{background:var(--panel);border-top:2px solid var(--cyan);margin-left:242px;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.f-course{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+.f-mod{font-family:var(--head);font-size:18px;font-weight:700;color:var(--cyan)}
+.f-right{text-align:right}
+.f-name{font-family:var(--head);font-size:18px;font-weight:700;color:var(--white)}
+.f-sub{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--panel)}::-webkit-scrollbar-thumb{background:var(--cyan-d);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="sidebar">
+  <div class="sb-logo">
+    <span class="sb-week">// CC7007 · Sandbox Investigation</span>
+    <span class="sb-title">AgentTesla — Malware Analysis with any.run</span>
+  </div>
+  <div class="nav-group">Before You Start</div>
+  <a href="#understand">What Are We Doing?</a>
+  <a href="#scenario">Case Briefing</a>
+  <a href="#choosesample">Finding Your Sample</a>
+  <a href="#roadmap-sec">Investigation Roadmap</a>
+  <div class="nav-group">Part 1 — Sandbox Overview</div>
+  <a href="#part1">Threat Score &amp; Family ID</a>
+  <a href="#task12">Behaviour Summary</a>
+  <div class="nav-group">Part 2 — Process Tree</div>
+  <a href="#part2">Reading the Process Tree</a>
+  <a href="#task22">Injection &amp; Suspicious Children</a>
+  <a class="flag-a" href="#finding1">⚑ Finding 1 — Execution Chain</a>
+  <div class="nav-group">Part 3 — Network Activity</div>
+  <a href="#part3">DNS Queries</a>
+  <a href="#task32">TCP Connections &amp; MalConf</a>
+  <a href="#task33">Connections Panel</a>
+  <a class="flag-a" href="#finding2">⚑ Finding 2 — C2 &amp; Exfiltration</a>
+  <div class="nav-group">Part 4 — File &amp; Registry</div>
+  <a href="#part4">Dropped Files</a>
+  <a href="#task42">Persistence via Registry</a>
+  <a class="flag-a" href="#finding3">⚑ Finding 3 — Persistence</a>
+  <div class="nav-group">Part 5 — ATT&amp;CK &amp; IOCs</div>
+  <a href="#part5">MITRE ATT&amp;CK Map</a>
+  <a href="#task52">Export the IOC List</a>
+  <div class="nav-group">Part 6 — IR Evidence Pack</div>
+  <a href="#part6">What to Produce</a>
+  <a href="#ioc-table">IOC Priority Table</a>
+  <a href="#remediation">Remediation Checklist</a>
+  <a href="#exec-summary">Executive Summary</a>
+  <div class="nav-group">Finish Up</div>
+  <a href="#recap">What Did We Learn?</a>
+  <a href="#quiz">Knowledge Check</a>
+</nav>
+
+<main class="main">
+
+<div class="hero">
+  <div class="hero-badge">CC7007 · Malware Sandbox Investigation Workshop</div>
+  <h1>AgentTesla<br><em>Credential Stealer Analysis</em></h1>
+  <p class="tagline">You will investigate a real AgentTesla sample using a provided any.run sandbox report. Every panel — process tree, network connections, MalConf, files, registry — is already populated with real evidence. Your job is to read it systematically, connect the sections into a coherent picture of what the malware did, and produce a complete IR Evidence Pack.</p>
+  <div class="chips">
+    <div class="chip c">Platform: <b>any.run (app.any.run)</b></div>
+    <div class="chip a">Malware family: <b>AgentTesla — credential stealer</b></div>
+    <div class="chip g">Account needed: <b>free any.run account</b></div>
+    <div class="chip p">Duration: <b>~2 hours</b></div>
+  </div>
+</div>
+
+
+<div class="divider" id="understand">🧠 WHAT ARE WE DOING?</div>
+
+<p>This workshop uses <strong>any.run</strong> — an interactive online malware sandbox — to investigate a real AgentTesla sample. any.run executes submitted files in a controlled Windows VM and records everything: every process spawned, every network connection made, every file dropped, every registry key written. You observe all of this through a live browser interface, and every completed analysis is permanently stored as a public report you can revisit.</p>
+
+<p>Unlike a PCAP analysis where evidence is fixed, a sandbox report is a complete behavioural record — process tree, network traffic, file activity, registry changes, and a pre-generated MITRE ATT&CK map all in one place. Your task is to read that report systematically, connect its sections into a coherent picture of what the malware did, and extract the IOCs that would allow a security team to detect and block future infections.</p>
+
+<div class="box warn">
+  <div class="bx-label">⚠️ You are picking a real malware sample</div>
+  <p>The samples in any.run's public feed are real malicious executables submitted by researchers and analysts worldwide. The sandbox executes them safely in an isolated cloud VM — nothing runs on your machine. <strong>Do not download any file from the sandbox to your local system.</strong> All analysis happens inside the any.run interface. If you are asked to download anything to your local disk during this workshop, stop and ask your instructor.</p>
+</div>
+
+<h2 class="sec">What you will extract from the sandbox report</h2>
+<div class="grid-2">
+  <div class="grid-card" style="border-left:3px solid var(--cyan)">
+    <div class="gc-head">Execution chain</div>
+    <div class="gc-body">How the malware launched: which parent process spawned which child, where code injection occurred, and which process ultimately ran the credential-stealing payload.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--pink)">
+    <div class="gc-head" style="color:var(--pink)">C2 &amp; exfiltration channel</div>
+    <div class="gc-body">Where AgentTesla sends stolen credentials — DNS queries, SMTP server, HTTP endpoint, or Telegram. Different campaigns use different channels. Your sample tells you which.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--amber)">
+    <div class="gc-head" style="color:var(--amber)">Persistence mechanism</div>
+    <div class="gc-body">How the malware survives reboot — typically a Run key in the registry, a scheduled task, or a startup folder entry. The sandbox records exactly which key was written and what value.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--green)">
+    <div class="gc-head" style="color:var(--green)">Actionable IOC list</div>
+    <div class="gc-body">Hashes, domains, IPs, and registry keys extracted from the sandbox report — ready to push into detection rules or a threat intelligence platform.</div>
+  </div>
+</div>
+
+
+<div class="divider pk" id="scenario">📁 CASE BRIEFING</div>
+
+<div class="scenario-card">
+  <div class="sc-ref">// Threat family: AgentTesla · Delivery: phishing email / malicious attachment · Target: Windows workstation · Exfiltration: SMTP / HTTP / Telegram</div>
+  <div class="sc-body">
+    <p>A finance department employee at a mid-size manufacturing company received an email appearing to be from a known supplier. The subject line read: <em>"Urgent — Outstanding Invoice INV-2024-08841 — Action Required"</em>. Attached was a file named <code>Invoice_INV-2024-08841.exe</code> disguised with a PDF icon. The user double-clicked it.</p>
+    <p>Within seconds, the process spawned a copy of itself in the user's AppData directory and began contacting an external server. The IT team noticed the anomalous outbound connection in their firewall logs and isolated the machine. They submitted the attachment to any.run for analysis before wiping the host.</p>
+    <p>Your task: <strong>work through the any.run sandbox report for an AgentTesla sample, extract every observable behaviour, identify the exfiltration channel, document the persistence mechanism, and compile everything into a MITRE ATT&CK-mapped incident timeline.</strong></p>
+  </div>
+</div>
+
+<div class="box tip">
+  <div class="bx-label">💡 Why AgentTesla for this workshop</div>
+  <p>AgentTesla is one of the most consistently documented credential stealers in circulation. It has been active since 2014 and appears in thousands of phishing campaigns every year. Its behaviour in a sandbox is predictable enough to teach from — process injection, SMTP or HTTP exfiltration, registry persistence — but the specific details vary enough between campaigns that every sample produces different IOCs. This means your investigation and your classmates' investigations will reach similar structural conclusions from different concrete evidence. That variation makes the WebLearn discussion genuinely useful.</p>
+</div>
+
+
+<div class="divider vi" id="choosesample">🔗 YOUR SAMPLE — OPEN THIS REPORT</div>
+
+<p>Everyone in the class is working from the same any.run report. This removes the variability of sample selection and lets you focus entirely on the investigation — reading the evidence, making analytical judgements, and producing the deliverables. The report is a real submission from March 2026 and contains a complete execution record.</p>
+
+<div class="click-step">
+  <div class="click-head"><div class="cs-n am">Step 1</div><div class="cs-desc">Create a free any.run account if you do not already have one</div></div>
+  <div class="click-body">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Go to <strong>app.any.run</strong> and register a free account using your university email address. You do not need a paid subscription — the free tier gives full access to all public sandbox reports. Log in before opening the link below.</p>
+    <div class="box success">
+      <div class="bx-label">✓ Free tier is sufficient for everything in this workshop</div>
+      <p>Process tree, network panels, MalConf tab, Files tab, Registry tab, ATT&CK map, and IOC export are all accessible on the free plan.</p>
+    </div>
+  </div>
+</div>
+
+<div class="click-step">
+  <div class="click-head"><div class="cs-n">Step 2</div><div class="cs-desc">Open the workshop report — bookmark it before you begin</div></div>
+  <div class="click-body">
+    <div class="out-block am">
+      <div class="ob-top"><div class="lbl">Your any.run task URL — open this now</div><div class="tag web">FIXED SAMPLE</div></div>
+      <pre><span class="hl-a">https://app.any.run/tasks/5742b61e-2fa4-445e-9c5f-b77ccb301936</span></pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 This URL is your evidence reference for every Finding and your submission</div>
+      <p>Every Finding box in this workshop asks for the task URL. It is always the same: <code>https://app.any.run/tasks/5742b61e-2fa4-445e-9c5f-b77ccb301936</code>. Paste it into your WebLearn submission so your instructor can verify your findings directly against the report.</p>
+    </div>
+  </div>
+</div>
+
+<div class="click-step">
+  <div class="click-head"><div class="cs-n gn">Step 3</div><div class="cs-desc">Familiarise yourself with the report before starting Part 1</div></div>
+  <div class="click-body">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Spend two minutes clicking through every tab before you begin the structured investigation. You are not analysing yet — you are orienting. Locate each of the following panels so you know where to find them when Part 1 asks for them:</p>
+    <div class="roadmap" style="margin:8px 0;border-left-color:rgba(34,211,238,0.25)">
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">1</div><div><div class="rm-title" style="font-size:13.5px">Top overview panel — threat score, family tag, SHA-256, timestamps</div><div class="rm-desc">Used in Task 1.1</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">2</div><div><div class="rm-title" style="font-size:13.5px">Process Tree — left panel, parent-child hierarchy with injection icons</div><div class="rm-desc">Used in Tasks 2.1 and 2.2</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">3</div><div><div class="rm-title" style="font-size:13.5px">Network tab → DNS sub-panel and Connections sub-panel (not HTTP Requests)</div><div class="rm-desc">Used in Tasks 3.1, 3.2, and 3.3</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">4</div><div><div class="rm-title" style="font-size:13.5px">MalConf tab — extracted C2 configuration from the binary</div><div class="rm-desc">Used in Task 3.2 — this is separate from Network</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">5</div><div><div class="rm-title" style="font-size:13.5px">Files tab and Registry tab</div><div class="rm-desc">Used in Tasks 4.1 and 4.2</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">6</div><div><div class="rm-title" style="font-size:13.5px">ATT&CK tab and IOC tab</div><div class="rm-desc">Used in Tasks 5.1 and 5.2</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="box danger">
+  <div class="bx-label">⚠️ Do not download any file from the report</div>
+  <p>The report contains links to the original malware sample. Do not click Get Sample or download anything to your local machine. All analysis happens inside the any.run browser interface. The sample file is a real malicious JavaScript that executes on Windows.</p>
+</div>
+
+
+<div class="divider vi" id="roadmap-sec">🗺 INVESTIGATION ROADMAP</div>
+
+<div class="roadmap" style="margin-top:18px">
+  <div class="rm-item"><div class="rm-step">Part 1</div><div><div class="rm-title">Sandbox overview — threat score, family, behaviour summary</div><div class="rm-desc">The top of the any.run report — read it before touching any other panel</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 2</div><div><div class="rm-title">Process tree — execution chain and injection</div><div class="rm-desc">How the sample launched, what it spawned, and where code was injected</div></div></div>
+  <div class="rm-item rf"><div class="rm-step">Finding 1</div><div><div class="rm-title">Execution chain confirmed — parent, child, injected process, and first malicious action</div><div class="rm-desc">MITRE ATT&CK: T1055 — Process Injection</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 3</div><div><div class="rm-title">Network activity — DNS, HTTP/SMTP connections, exfiltration channel</div><div class="rm-desc">Where stolen data went and how the malware contacted its C2</div></div></div>
+  <div class="rm-item rf"><div class="rm-step">Finding 2</div><div><div class="rm-title">C2 and exfiltration channel confirmed — IP/domain, port, protocol, and data type</div><div class="rm-desc">MITRE ATT&CK: T1071 — Application Layer Protocol</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 4</div><div><div class="rm-title">File and registry activity — dropped files and persistence</div><div class="rm-desc">What the malware wrote to disk and how it survives reboot</div></div></div>
+  <div class="rm-item rf"><div class="rm-step">Finding 3</div><div><div class="rm-title">Persistence mechanism confirmed — registry key, scheduled task, or startup folder</div><div class="rm-desc">MITRE ATT&CK: T1547 — Boot or Logon Autostart Execution</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 5</div><div><div class="rm-title">MITRE ATT&CK map and IOC export</div><div class="rm-desc">The sandbox's built-in ATT&CK coverage and the exportable IOC list</div></div></div>
+  <div class="rm-item rt"><div class="rm-step">Part 6</div><div><div class="rm-title">IR Evidence Pack — timeline, IOC table, remediation checklist, executive summary</div><div class="rm-desc">Four deliverables that together constitute a complete analyst handoff document</div></div></div>
+</div>
+
+
+<!-- ═══════════════ PART 1 ═══════════════ -->
+<div class="divider" id="part1">PART 1 — SANDBOX OVERVIEW</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~10 min · Top panel of the any.run report — read before anything else</p>
+
+<p>Before diving into the process tree or network panels, read the top of the report in full. The overview panel gives you everything you need to contextualise the rest of the analysis: the threat score, the confirmed malware family, the initial file name and hash, and the OS environment it ran in. Skipping this step means you risk misinterpreting later panels without that context.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📊</div><div><div class="ch-title">Read the overview before applying any filter or clicking any panel</div><div class="ch-sub">Context shapes interpretation — every later finding is read against this baseline</div></div></div>
+  <div class="concept-body">
+    <p>The any.run threat score is not just a verdict — it is a confidence indicator. A score of 100 means the sandbox observed multiple high-confidence malicious behaviours. A score of 60–80 means suspicious but ambiguous. The family identification tells you the malware's known capability set before you read a single process. An AgentTesla identification means you should expect credential harvesting, SMTP or HTTP exfiltration, and registry persistence — which primes you to look for exactly those behaviours in Parts 2–4 and notice when they are absent.</p>
+    <p>The initial file name and hash are your chain-of-custody anchor for the entire investigation. Every finding you make downstream is ultimately tied to this specific binary. If the filename and hash in the report do not match what the scenario described, you are looking at a different sample — stop and reselect before proceeding.</p>
+  </div>
+</div>
+
+<h2 class="sec">Task 1.1 — Threat Score and Family Identification</h2>
+
+<div class="goal-box">
+  <div class="gb-label">What we are finding out</div>
+  <ul>
+    <li>The threat score and what it means for the confidence of everything else in the report</li>
+    <li>The confirmed malware family — AgentTesla, and any sub-variant tag if present</li>
+    <li>The initial filename, SHA-256 hash, and file size — your chain-of-custody anchor</li>
+    <li>The OS and analysis duration — relevant to any "did the sandbox see everything?" questions</li>
+  </ul>
+</div>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill">🖥 any.run Report</div><div class="ui-desc">Top overview panel — no clicking required, just read</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">At the top of your selected report you will see a header section with the threat verdict (Malicious / Suspicious / No Threats), a score out of 100, and the confirmed malware family tag. Below that is the file metadata block.</p>
+    <div class="out-block am">
+      <div class="ob-top"><div class="lbl">What the top panel looks like — your values will differ</div><div class="tag note">ANY.RUN OVERVIEW</div></div>
+      <pre><span class="hl-r">MALICIOUS</span>  Threat Score: <span class="hl-a">96 / 100</span>
+Family:    <span class="hl-c">AgentTesla</span>
+Tags:      <span class="hl-v">stealer  keylogger  rat  smtp-exfil</span>
+
+File name: <span class="hl">Invoice_INV-2024-08841.exe</span>
+SHA-256:   <span class="hl-c">[your hash — record it now]</span>
+File size: [bytes]
+File type: PE32 executable (GUI) Intel 80386 Mono/.Net assembly
+
+OS:        Windows 10 64-bit (build 19045)
+Duration:  60 seconds
+Started:   [UTC timestamp — record for timeline]</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 Record the SHA-256 and start timestamp now</div>
+      <p>Copy both into your notes before reading anything else. Every Finding box in this workshop has a placeholder for them. The start timestamp from the sandbox run is the reference point for all relative timing in your incident timeline.</p>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>Tags below the family name</strong> — any.run adds behavioural tags from what it observed. Tags like <code>smtp-exfil</code>, <code>keylogger</code>, <code>clipboard</code>, or <code>ftp-exfil</code> tell you which AgentTesla capabilities were observed in this specific run. Record all tags — they map directly to MITRE ATT&CK techniques in Part 5.</li>
+    <li><strong>The "Mono/.Net assembly" note in the file type</strong> — AgentTesla is written in .NET. This matters in Part 2: .NET malware often uses process hollowing to inject into a legitimate .NET host process like <code>RegSvcs.exe</code> or <code>AppLaunch.exe</code>. Knowing this primes you to look for that pattern in the process tree.</li>
+    <li><strong>Duration less than 30 seconds</strong> — if the analysis ran for fewer than 30 seconds, some behaviours may not have had time to trigger. Note this as a limitation in your confidence assessment for findings that you expected to see but could not.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task12">Task 1.2 — Behaviour Summary Panel</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill am">🖥 any.run Report</div><div class="ui-desc">Behaviour tab → Summary — the high-level detection list</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Click the <strong>Behaviour</strong> tab in the any.run report (if your version shows it). This panel groups all detected malicious behaviours by category — Execution, Persistence, Defence Evasion, Credential Access, Exfiltration, and so on. Each item links to the specific event that triggered it. This is your high-level map before you go deeper.</p>
+    <div class="out-block vi">
+      <div class="ob-top"><div class="lbl">Typical AgentTesla behaviour list — your sample will vary</div><div class="tag web">BEHAVIOUR TAB</div></div>
+      <pre><span class="hl-v">Execution</span>
+  → Process created in AppData (suspicious path)
+  → Code injection detected in legitimate host process
+
+<span class="hl-v">Persistence</span>
+  → Registry Run key written: HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+
+<span class="hl-v">Defence Evasion</span>
+  → Process spawned from temp directory
+  → Obfuscated command line arguments observed
+
+<span class="hl-v">Credential Access</span>
+  → Browser credential store accessed (Chromium-based)
+  → Outlook profile queried
+
+<span class="hl-v">Exfiltration</span>
+  → SMTP connection to external server on port 587
+  → Data transmitted: keylog data + clipboard content + browser passwords</pre>
+    </div>
+    <div class="box warn" style="margin-top:10px">
+      <div class="bx-label">⚠️ Your behaviour list will be different</div>
+      <p>The list above is representative — it shows what a typical AgentTesla run produces. Your actual sample may use HTTP or Telegram instead of SMTP for exfiltration. It may target FTP credentials rather than browser passwords. Read what is actually in your report rather than assuming it matches the example.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 2 ═══════════════ -->
+<div class="divider am" id="part2">PART 2 — PROCESS TREE</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~25 min · Process Tree panel — left side of the any.run interface</p>
+
+<p>The process tree is the most forensically informative panel in any sandbox report. It shows every process that ran, in parent-child order, with colour-coding for injection and suspicious activity. For AgentTesla, the tree typically contains three or four nodes: the initial dropper, a copy of itself in AppData, a legitimate host process into which it injects, and occasionally a child spawned for specific tasks.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🌳</div><div><div class="ch-title">Why the process tree is the backbone of the investigation</div><div class="ch-sub">Everything else — network, files, registry — traces back to a process</div></div></div>
+  <div class="concept-body">
+    <p>Every action a piece of malware takes is performed by a specific process. Network connections come from a process. Files are written by a process. Registry keys are created by a process. The process tree tells you which process did what — and crucially, which process should not exist at all. A legitimate Windows binary that appears in the tree as a child of a newly-dropped executable is immediately suspicious, regardless of what its name is. That pattern — legitimate process, illegitimate parent — is the core indicator of process hollowing and process injection.</p>
+    <p>In any.run, injected processes are shown with a syringe icon (💉). Processes flagged as malicious have a red background. Processes spawned from unusual paths (AppData, Temp, ProgramData) have warning indicators. Start from the top of the tree and work downward — the story is always told from parent to child.</p>
+    <p><strong>AgentTesla typically runs three or four hops deep, not two.</strong> A real sample might go: <code>explorer.exe</code> → <code>wscript.exe</code> (the initial script) → <code>powershell.exe</code> (launched with bypass flags) → <code>aspnet_compiler.exe</code> (the injected host). Each hop adds a layer of indirection. Understanding which hop introduced the malicious behaviour is the analytical task — the injection always happens at or near the end of the chain.</p>
+  </div>
+</div>
+
+<h2 class="sec">Task 2.1 — Read the Process Tree Top-Down</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill">🖥 any.run Report</div><div class="ui-desc">Process Tree panel — left side of the sandbox view</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">The process tree is visible on the left side of the any.run report by default. Each node shows the executable name, PID, and parent PID. Coloured indicators show status. Click any node to expand its details in the right panel — command line arguments, file path, timestamps, and any detected behaviours attributed to that process.</p>
+    <div class="out-block">
+      <div class="ob-top"><div class="lbl">Real AgentTesla execution chain — your process names and PIDs will differ</div><div class="tag ui">PROCESS TREE</div></div>
+      <pre><span class="hl-c">explorer.exe</span>  PID 1528  (user shell — user double-clicked the file)
+└── <span class="hl-a">wscript.exe</span>  PID 1068  ← initial JS script  <span class="hl-r">MALICIOUS</span>
+    │  CMD: "C:\Windows\System32\WScript.exe" invoice.txt.js
+    │  <span class="hl-a">Note: file extension is .js disguised as .txt — Windows hid the real extension</span>
+    │
+    ├── <span class="hl-a">powershell.exe</span>  PID 4304  ← launched by wscript  <span class="hl-r">MALICIOUS</span>
+    │   CMD: -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File "C:\Temp\ps_[random].ps1"
+    │   └── <span class="hl-r">aspnet_compiler.exe</span> 💉  PID 8252  ← injected host  <span class="hl-r">INJECTED / AGENTTESLA</span>
+    │       (all credential theft, SMTP exfiltration, and browser access runs here)
+    │
+    └── <span class="hl">taskkill.exe</span>  PID 7780  ← anti-forensic cleanup
+        CMD: /f /im wscript.exe   <span class="hl-a">← malware killing its own launcher after injection</span></pre>
+    </div>
+    <div class="look-for" style="margin-top:12px">
+      <div class="lf-head">What to look for</div>
+      <ul>
+        <li><strong>The parent of wscript.exe — what launched the script?</strong> If it is <code>explorer.exe</code>, the user double-clicked it. If it is <code>winword.exe</code> or <code>excel.exe</code>, a macro launched it. The parent reveals the delivery mechanism and maps to your first timeline event.</li>
+        <li><strong>The file extension trick</strong> — a file named <code>invoice.txt.js</code> displays as <code>invoice.txt</code> on a Windows machine with "Hide extensions for known file types" enabled (the default). This is a social engineering technique. Note it in your Finding 1 as the delivery mechanism detail — T1036.007 Masquerading: Double File Extension.</li>
+        <li><strong>The PowerShell flags</strong> — <code>-ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden</code> are three separate defence evasion choices: bypassing execution policy, skipping profile scripts that might alert, and hiding the window from the user. Each one is a detectable IOC at the command-line logging level.</li>
+        <li><strong>The injected target process</strong> — common targets are <code>aspnet_compiler.exe</code>, <code>RegSvcs.exe</code>, <code>AppLaunch.exe</code>, or <code>vbc.exe</code>. All are legitimate signed .NET binaries. Record the exact path and PID — you need the PID in Part 3 to attribute the SMTP connection to the right process.</li>
+        <li><strong>taskkill.exe killing wscript.exe</strong> — the malware cleans up its own launcher after injection succeeds. This is anti-forensic behaviour: if an analyst only checks running processes after the infection, wscript.exe is already gone. It tells you the initial script execution has fully completed by the time taskkill fires — injection was successful.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec" id="task22">Task 2.2 — Inspect the Injected Process Detail</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill am">🖥 any.run Report</div><div class="ui-desc">Click the injected process node → read the detail panel on the right</div></div>
+  <div class="ui-inner">
+    <div class="roadmap" style="margin:8px 0;border-left-color:rgba(245,158,11,0.25)">
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--amber)">1</div><div><div class="rm-title" style="font-size:13.5px">Click the injected process (the one with the 💉 icon)</div><div class="rm-desc">A detail panel opens on the right showing the process's full path, command line, parent PID, and creation timestamp.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--amber)">2</div><div><div class="rm-title" style="font-size:13.5px">Record the full executable path of the legitimate host process</div><div class="rm-desc">Example: <code>C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegSvcs.exe</code>. The legitimate path is part of the evidence — injection into a system binary from a non-system parent is the indicator.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--amber)">3</div><div><div class="rm-title" style="font-size:13.5px">Check the command line arguments</div><div class="rm-desc">A legitimately running RegSvcs.exe would show a normal command line. An injected one may have no command line at all, or one that looks like it was started by the malware — a strong indicator.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--amber)">4</div><div><div class="rm-title" style="font-size:13.5px">Note the detection tags attached to this node</div><div class="rm-desc">any.run labels each process with the techniques it detected. Look for: <code>process-injection</code>, <code>credential-access</code>, <code>keylogging</code>, <code>network-connection</code>.</div></div></div>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 The injected process is the operational core</div>
+      <p>All credential harvesting, all network exfiltration, and usually all keylogging runs inside the injected process. The dropper's only job is to copy itself and perform the injection — after that it may terminate. If you see the dropper terminate in the process tree, this is expected and not a gap in coverage.</p>
+    </div>
+  </div>
+</div>
+
+<div class="flag-box" id="finding1">
+  <div class="fb-label">⚑ Finding 1 — Execution Chain Confirmed from Process Tree</div>
+  <div class="fb-val">
+Delivery file: [filename] — file type: [.js / .exe / .doc — from overview panel]
+Extension trick: [e.g. invoice.txt.js displayed as invoice.txt — yes/no]
+Parent of initial process: [explorer.exe = user double-click / winword.exe = macro / other]
+Hop 1: [initial process name] PID [n] — launched by [parent]
+Hop 2: powershell.exe PID [n] — flags: -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden
+Hop 3 (injected): [aspnet_compiler.exe / RegSvcs.exe / other] PID [n] — full path: [from node detail]
+Cleanup: taskkill.exe observed killing [process] — anti-forensic launcher removal [yes/no]
+First malicious action timestamp: T+[seconds] from sandbox start
+any.run task URL: https://app.any.run/tasks/5742b61e-2fa4-445e-9c5f-b77ccb301936
+SHA-256: [from Part 1 overview panel]
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1059.007 — Command and Scripting Interpreter: JavaScript</strong> (initial script execution via wscript.exe) and <strong>T1055 — Process Injection</strong> (payload injected into legitimate .NET host). The multi-hop chain — script → PowerShell with bypass flags → injected .NET binary — is designed to make each hop look individually legitimate. The file extension trick (T1036.007) and the PowerShell window hiding (T1564.003) are additional defence evasion layers observable directly from the process tree. The taskkill cleanup is T1070.004 — File Deletion / Indicator Removal. Replace all bracketed values with your actual findings.
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 3 ═══════════════ -->
+<div class="divider rd" id="part3">PART 3 — NETWORK ACTIVITY</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~25 min · Network tab in any.run — DNS, connections, HTTP/SMTP</p>
+
+<p>AgentTesla's exfiltration channel is the most operationally significant finding in the report. Different campaigns use different channels: SMTP on port 587 (most common), HTTP POST to a web panel, FTP, or even Telegram bot API. The network panel in any.run records every connection the sandbox observed, attributed to the process that made it.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📡</div><div><div class="ch-title">Exfiltration channel determines containment priority</div><div class="ch-sub">The response action depends on what protocol the stolen data left on</div></div></div>
+  <div class="concept-body">
+    <p>If AgentTesla uses SMTP, the stolen credentials were sent as an email to an attacker-controlled mailbox. Containment means blocking the SMTP server's IP at the perimeter and resetting all passwords before they can be used. The email address in the SMTP headers is itself an IOC — it may be a compromised legitimate account used as a drop box.</p>
+    <p>If it uses HTTP, there is a web panel — a PHP script running on a compromised or attacker-owned server. The POST URL, the server IP, and any cookies or headers are all IOCs. If it uses Telegram, the bot token and chat ID are extractable from the malware's configuration and constitute persistent IOCs since Telegram bots are not trivially blocked at the network level.</p>
+    <p>Whatever channel your sample uses, the network panel gives you the destination IP or domain, the port, and often the transmitted content — enough to identify the attacker's infrastructure and notify relevant abuse contacts.</p>
+  </div>
+</div>
+
+<h2 class="sec">Task 3.1 — DNS Queries</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill rd">🖥 any.run Report</div><div class="ui-desc">Network tab → DNS requests panel</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Click the <strong>Network</strong> tab in the report. The DNS section lists every domain name the sandbox resolved during the analysis. Each entry shows the queried domain and the resolved IP address. Look at all of them before focusing on any one.</p>
+    <div class="out-block rd">
+      <div class="ob-top"><div class="lbl">Representative DNS query list — your domains will be different</div><div class="tag web">DNS PANEL</div></div>
+      <pre><span class="hl-c">checkip.dyndns.org</span>      → 216.146.43.71   <span class="hl-a">← IP-check — victim external IP lookup</span>
+<span class="hl-r">mail.attacker-domain.ru</span> → 185.220.101.X   <span class="hl-a">← SMTP relay for credential exfiltration</span>
+<span class="hl-r">panel.attacker-site.xyz</span>  → 91.238.7.X     <span class="hl-a">← web panel C2 (if HTTP exfil used)</span>
+<span class="hl-c">api.telegram.org</span>         → 149.154.167.X  <span class="hl-a">← Telegram bot API (if Telegram used)</span></pre>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to look for</div>
+  <ul>
+    <li><strong>checkip.dyndns.org or api.ipify.org</strong> — almost every AgentTesla sample queries a public IP-lookup service before exfiltrating. This confirms the infection is active and the malware is preparing to include the victim's external IP in its exfiltration payload. Its presence is a consistent first-step indicator regardless of which exfiltration channel follows.</li>
+    <li><strong>A mail server domain</strong> — if the sample uses SMTP, you will see a DNS query for an <code>mail.</code> subdomain under an unfamiliar or clearly attacker-registered domain. The resolved IP is your SMTP server IOC.</li>
+    <li><strong>api.telegram.org</strong> — if this appears, the sample is using a Telegram bot for exfiltration. Record the resolved IP but note that blocking api.telegram.org at the firewall level will also block legitimate Telegram usage — document this trade-off in your findings.</li>
+    <li>Record every domain that is not a recognisable legitimate service — all of them are IOCs for your Part 5 export.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task32">Task 3.2 — TCP Connections Panel and MalConf: Where SMTP Actually Lives</h2>
+
+<div class="box danger">
+  <div class="bx-label">⚠️ Critical: SMTP does not appear in the HTTP requests panel</div>
+  <p>This is the most common mistake in sandbox network analysis. The HTTP requests panel in any.run only shows HTTP and HTTPS traffic. <strong>SMTP is a completely separate protocol — it never appears there.</strong> If you open the HTTP panel and see only whitelisted Microsoft background requests (Windows Update, CRL checks, login.live.com), that does not mean the malware made no network connections. It means the malicious connection used a different protocol. Always check the TCP Connections panel separately.</p>
+</div>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📭</div><div><div class="ch-title">Two separate evidence sources for the exfiltration channel</div><div class="ch-sub">Observed traffic vs extracted configuration — different confidence levels</div></div></div>
+  <div class="concept-body">
+    <p><strong>TCP Connections panel (Network tab → Connections):</strong> Shows every raw TCP/UDP session the sandbox observed, including SMTP on port 587. Each entry shows the source process PID, destination IP, destination port, and byte counts. This is observed behaviour — High confidence evidence. If the SMTP session appears here attributed to the injected process PID from Part 2, the exfiltration happened during the sandbox run.</p>
+    <p><strong>MalConf panel:</strong> any.run decompiles the .NET assembly and extracts the hardcoded C2 configuration directly from the binary — the SMTP server hostname, port, username, and password the malware was programmed with. This is extracted configuration — it proves the malware <em>would have</em> exfiltrated to that server even if the sandbox run ended before the connection fired. It is Medium confidence: you know the intended destination but cannot prove data left the network in this specific run.</p>
+    <p>Both are IOCs. The distinction matters for your timeline confidence labels and for how you brief the IR team — a High confidence observed SMTP connection means credentials definitely left the network. A Medium confidence MalConf extraction means you need to treat it as if they did and act accordingly, but you cannot prove it yet.</p>
+  </div>
+</div>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill rd">🖥 any.run Report</div><div class="ui-desc">Network tab → Connections — find the SMTP session to port 587</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Click <strong>Network</strong> then look for the <strong>Connections</strong> sub-panel (distinct from HTTP Requests). Filter or scroll for port 587 connections. Cross-reference the PID against your injected process from Part 2.</p>
+    <div class="out-block rd">
+      <div class="ob-top"><div class="lbl">TCP Connections — SMTP session visible here, not in HTTP panel</div><div class="tag web">CONNECTIONS</div></div>
+      <pre>Process              PID   Dst IP              Port  Sent    Recv
+<span class="hl-c">svchost.exe</span>          6320  23.216.77.6          80   —       —    <span class="hl-a">← whitelisted CRL check</span>
+<span class="hl-c">SIHClient.exe</span>        9028  20.165.94.63        443   —       —    <span class="hl-a">← whitelisted Windows Update</span>
+<span class="hl-r">aspnet_compiler.exe</span>  8252  <span class="hl-r">118.69.204.202</span>      <span class="hl-r">587</span>   —       —    <span class="hl-a">← SMTP exfil  ← YOUR IOC</span></pre>
+    </div>
+    <div class="box warn" style="margin-top:10px">
+      <div class="bx-label">⚠️ If port 587 does not appear in Connections</div>
+      <p>The sandbox run may have ended before the SMTP session fired — AgentTesla sometimes delays exfiltration. If you see no SMTP connection, move directly to the MalConf panel below. The configuration evidence is still valid — document it as Medium confidence rather than High, and note in your Finding 2 that the connection was not observed in this run window.</p>
+    </div>
+  </div>
+</div>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill am">🖥 any.run Report</div><div class="ui-desc">MalConf tab — extracted C2 configuration from the binary</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Click the <strong>MalConf</strong> tab. any.run decompiles the .NET payload inside the injected process and extracts the hardcoded C2 configuration. For AgentTesla this typically includes the SMTP server hostname, port, sender credentials, and recipient address.</p>
+    <div class="out-block am">
+      <div class="ob-top"><div class="lbl">MalConf output — extracted directly from binary, not observed traffic</div><div class="tag web">MALCONF TAB</div></div>
+      <pre>Family:    <span class="hl-r">AgentTesla</span>
+Process:   aspnet_compiler.exe  PID [8252]
+
+Hosts:     <span class="hl-r">mail.attacker-domain.com</span>         <span class="hl-a">← SMTP server hostname</span>
+Port:      <span class="hl-r">587</span>
+Protocol:  smtp
+Username:  <span class="hl-r">sender@attacker-domain.com</span>       <span class="hl-a">← sending account (often compromised)</span>
+Password:  <span class="hl-r">[SMTP password — do not reproduce in submission]</span></pre>
+    </div>
+    <div class="box danger" style="margin-top:10px">
+      <div class="bx-label">⚠️ Do not reproduce SMTP credentials in your WebLearn submission</div>
+      <p>The MalConf panel may expose the attacker's SMTP password in plaintext. Record the structural IOCs — the hostname, port, and sender address — and write <strong>"credentials present — not reproduced"</strong> in your Finding 2. Do not paste the password into a discussion board post. The hostname and IP are your actionable IOCs; the password is only useful if you are reporting the account to the mail provider's abuse team, which is outside the scope of this workshop.</p>
+    </div>
+  </div>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What to record from Connections and MalConf</div>
+  <ul>
+    <li><strong>From TCP Connections:</strong> destination IP and port 587 attributed to the injected process PID — this is High confidence direct evidence of an attempted or completed SMTP exfiltration. The IP is your primary firewall block IOC.</li>
+    <li><strong>From MalConf — the hostname</strong> — resolve it with a DNS lookup to confirm it matches the IP in Connections. If they match, two independent evidence sources confirm the same C2 server. If they differ, the malware may have multiple C2 servers configured.</li>
+    <li><strong>From MalConf — the sender address domain</strong> — often a compromised legitimate business mail server rather than an attacker-registered domain. Check the registrar and hosting country. This tells you whether to report to a hosting provider (attacker infrastructure) or to a business whose mail server was compromised.</li>
+    <li><strong>Whether the connection appeared in Connections or only in MalConf</strong> — this determines whether the confidence level in your timeline is High (observed) or Medium (configured but not confirmed as executed in this run).</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="task33">Task 3.3 — Connections Panel</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill gn">🖥 any.run Report</div><div class="ui-desc">Network tab → Connections — all TCP/UDP sessions with process attribution</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">The Connections panel lists every network session established during the sandbox run: source process, destination IP, destination port, protocol, and byte count each direction. This is the closest equivalent to a NetFlow record for the sandbox environment. Cross-reference the PID of each connection against your process tree from Part 2 to confirm which process made which connection.</p>
+    <div class="out-block vi">
+      <div class="ob-top"><div class="lbl">Connections panel — representative structure</div><div class="tag web">CONNECTIONS</div></div>
+      <pre>Process          PID   Dst IP            Port  Proto  Sent     Recv
+<span class="hl-r">RegSvcs.exe</span>     4156  <span class="hl-a">216.146.43.71</span>      80   TCP     328 B    512 B   <span class="hl-c">← IP lookup</span>
+<span class="hl-r">RegSvcs.exe</span>     4156  <span class="hl-r">185.220.101.44</span>    587   TCP    6.2 KB    1.1 KB  <span class="hl-c">← SMTP exfil</span>
+<span class="hl">cmd.exe</span>          4408  <span class="hl-v">104.21.82.194</span>     443   TCP     120 B    890 B   <span class="hl-c">← CDN check</span></pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 Confirm the injected process made the exfiltration connection</div>
+      <p>The PID in the Connections panel should match the PID of the injected process from your Part 2 process tree. If the exfiltration connection shows a different PID, go back to the process tree and check whether there is a child process you missed — AgentTesla sometimes spawns a short-lived exfiltration subprocess.</p>
+    </div>
+  </div>
+</div>
+
+<div class="flag-box" id="finding2">
+  <div class="fb-label">⚑ Finding 2 — C2 and Exfiltration Channel Confirmed</div>
+  <div class="fb-val">
+Exfiltration protocol: [SMTP port 587 / HTTP POST / Telegram — from Connections panel]
+C2 IP: [from TCP Connections panel — attributed to injected process PID]
+C2 hostname: [from MalConf tab — hostname the binary was configured with]
+Port: [587 / 80 / 443]
+Sending process: [aspnet_compiler.exe / other] PID [number]
+MalConf sender address: [from MalConf — do not reproduce password]
+MalConf recipient / C2 URL: [attacker inbox or web panel URL]
+Evidence source 1: TCP Connections panel — observed connection [yes / not observed this run]
+Evidence source 2: MalConf extraction — configuration confirmed from binary
+Confidence: [High if observed in Connections / Medium if MalConf only]
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1071.003 — Application Layer Protocol: Mail Protocols (SMTP)</strong> or <strong>T1071.001 — Web Protocols</strong> depending on your sample. The key distinction for your timeline: if the SMTP connection appeared in the TCP Connections panel attributed to the injected PID, confidence is High — credentials were exfiltrated. If only the MalConf extraction is present, confidence is Medium — the malware was configured to exfiltrate but the connection was not observed in this run window. Both warrant the same immediate containment action (block the destination IP), but the confidence label is different and matters for how the finding is communicated.
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 4 ═══════════════ -->
+<div class="divider vi" id="part4">PART 4 — FILE AND REGISTRY ACTIVITY</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~20 min · File Activity and Registry tabs in any.run</p>
+
+<p>Persistence is what separates a single infection from a sustained compromise. If AgentTesla writes a registry Run key, it survives every reboot until that key is removed. If it creates a scheduled task, it survives even if the Run key is cleaned. Understanding exactly what was written — and where — defines the remediation checklist that the IR team uses to clean the affected host.</p>
+
+<h2 class="sec">Task 4.1 — Dropped Files</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill vi">🖥 any.run Report</div><div class="ui-desc">Files tab — every file created or modified during the sandbox run</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Click the <strong>Files</strong> tab. The panel lists every file the malware created, modified, or deleted. Each entry shows the full path, the process that created it, and the file hash. Focus on files created in user-writable locations — system directories are usually reads, not writes.</p>
+    <div class="out-block vi">
+      <div class="ob-top"><div class="lbl">Typical AgentTesla file drops — your paths will differ</div><div class="tag web">FILES TAB</div></div>
+      <pre>Created by Invoice_INV-2024-08841.exe  PID 3044:
+  <span class="hl-r">C:\Users\admin\AppData\Roaming\SubFolderX\malware_copy.exe</span>  <span class="hl-a">← persistence copy</span>
+  <span class="hl-c">C:\Users\admin\AppData\Local\Temp\tmp4F2A.tmp</span>             <span class="hl-a">← temp working file</span>
+
+Created by RegSvcs.exe  PID 4156:
+  <span class="hl-v">C:\Users\admin\AppData\Roaming\SubFolderX\log.tmp</span>         <span class="hl-a">← keylog buffer</span></pre>
+    </div>
+    <div class="look-for" style="margin-top:12px">
+      <div class="lf-head">What to look for</div>
+      <ul>
+        <li><strong>The self-copy in AppData\Roaming</strong> — record the full path exactly, including the subdirectory name which is often randomised per-infection. This path is the primary artefact for host-based detection and remediation.</li>
+        <li><strong>A <code>.tmp</code> or <code>.log</code> file in AppData</strong> — AgentTesla maintains a local buffer of keylog data before transmitting it. This file may contain captured keystrokes from the sandbox VM's test input. Record its path for the remediation checklist.</li>
+        <li><strong>The hash of the dropped copy</strong> — click the file entry to see its SHA-256. It may differ from the original sample hash if the malware modified itself during the copy. Both hashes are IOCs.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec" id="task42">Task 4.2 — Registry Persistence</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill am">🖥 any.run Report</div><div class="ui-desc">Registry tab — filter for WRITE operations in Run keys</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Click the <strong>Registry</strong> tab. The panel lists every registry operation observed during the run: reads, writes, and deletes. Filter for <strong>Write</strong> operations and look for entries under the well-known persistence paths below.</p>
+    <div class="out-block am">
+      <div class="ob-top"><div class="lbl">Registry write — persistence via Run key</div><div class="tag web">REGISTRY TAB</div></div>
+      <pre>Operation: <span class="hl-r">WRITE</span>
+Key:   <span class="hl-a">HKCU\Software\Microsoft\Windows\CurrentVersion\Run</span>
+Value: <span class="hl-c">SubFolderX</span>    (the value name — often matches the AppData folder name)
+Data:  <span class="hl">C:\Users\admin\AppData\Roaming\SubFolderX\malware_copy.exe</span>
+PID:   3044  (Invoice_INV-2024-08841.exe — the dropper writes its own persistence)</pre>
+    </div>
+    <div class="box tip" style="margin-top:10px">
+      <div class="bx-label">💡 HKCU vs HKLM — the significance of the hive</div>
+      <p><code>HKCU</code> (Current User) persistence requires no administrator privileges — any standard user account can write it. This means AgentTesla establishes persistence without triggering a UAC prompt, making the infection fully silent from the user's perspective. <code>HKLM</code> (Local Machine) persistence would require admin rights and is less common in AgentTesla campaigns. Note which hive your sample uses — it affects the remediation approach.</p>
+    </div>
+    <div class="look-for" style="margin-top:10px">
+      <div class="lf-head">Also check for scheduled tasks</div>
+      <ul>
+        <li>Some AgentTesla samples create a scheduled task as a secondary persistence mechanism alongside the Run key. Look for registry writes under <code>HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache</code> or file writes to <code>C:\Windows\System32\Tasks\</code>.</li>
+        <li>If both a Run key and a scheduled task are present, document both — remediation must address both or the malware will recover after the Run key is deleted.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="flag-box" id="finding3">
+  <div class="fb-label">⚑ Finding 3 — Persistence Mechanism Confirmed from Registry and File Activity</div>
+  <div class="fb-val">
+Persistence type: Registry Run Key [+ Scheduled Task if present]
+Registry key: [full key path — HKCU or HKLM]
+Value name: [registry value name]
+Value data: [full path to self-copy in AppData]
+File artefact: [full path and SHA-256 of the dropped copy]
+Writing process: [dropper filename] PID [number]
+Keylog buffer: [path to .tmp or .log file if present]
+  </div>
+  <div class="fb-why">
+    <strong>MITRE ATT&CK: T1547.001 — Boot or Logon Autostart Execution: Registry Run Keys.</strong> The HKCU Run key written by the dropper ensures AgentTesla reloads after every user login without requiring administrator rights. Remediation requires deleting the registry value, removing the self-copy from AppData, and — if a scheduled task was also created — deleting that task. If only the registry key is removed, a scheduled task variant will reinstall it at the next login. Record the full registry path and file path so the IR team can verify removal on the host.
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 5 ═══════════════ -->
+<div class="divider gn" id="part5">PART 5 — MITRE ATT&amp;CK MAP AND IOC EXPORT</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~15 min · ATT&amp;CK tab and IOC export — any.run built-in features</p>
+
+<p>any.run generates two final products that turn your investigation into usable intelligence: a MITRE ATT&CK technique map built from the behaviours it observed, and an exportable IOC list containing every hash, IP, domain, and URL it extracted from the sandbox run. Both are available directly from the report interface.</p>
+
+<h2 class="sec">Task 5.1 — Review the MITRE ATT&CK Map</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill gn">🖥 any.run Report</div><div class="ui-desc">ATT&amp;CK tab — pre-generated technique matrix from sandbox observations</div></div>
+  <div class="ui-inner">
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:10px">Click the <strong>ATT&CK</strong> tab. any.run maps every detected behaviour to the corresponding MITRE technique and displays them in a matrix format. Each technique is clickable — it shows the specific sandbox event that triggered the detection.</p>
+    <div class="out-block gn">
+      <div class="ob-top"><div class="lbl">Typical AgentTesla ATT&amp;CK coverage — compare against your findings</div><div class="tag web">ATT&CK TAB</div></div>
+      <pre>Execution
+  T1059.001  PowerShell (if used in delivery)
+  T1106      Native API
+
+Persistence
+  <span class="hl">T1547.001  Boot or Logon Autostart Execution: Registry Run Keys</span>
+
+Defence Evasion
+  <span class="hl">T1055      Process Injection</span>
+  T1036.005  Masquerading: Match Legitimate Name or Location
+
+Credential Access
+  <span class="hl">T1555.003  Credentials from Password Stores: Credentials from Web Browsers</span>
+  T1056.001  Input Capture: Keylogging
+  T1115      Clipboard Data
+
+Command and Control
+  T1071.001  Application Layer Protocol: Web Protocols
+  T1071.003  Application Layer Protocol: Mail Protocols
+
+Exfiltration
+  <span class="hl">T1041      Exfiltration Over C2 Channel</span></pre>
+    </div>
+    <div class="look-for" style="margin-top:12px">
+      <div class="lf-head">How to use the ATT&CK map in your investigation</div>
+      <ul>
+        <li><strong>Compare what the sandbox mapped against what you found manually in Parts 2–4</strong> — did you identify all the techniques the sandbox detected? If it shows a technique you did not notice, click on it to find the event that triggered it and add it to your notes.</li>
+        <li><strong>Look for techniques the sandbox flagged that you cannot attribute to a specific event</strong> — if the ATT&CK map shows <code>T1082 System Information Discovery</code> but you did not see a process querying system info, go back to the process tree and look for WMI queries or registry reads from the injected process.</li>
+        <li><strong>Use the technique IDs in your timeline</strong> — Part 6 requires every event to have a MITRE technique ID. The ATT&CK tab gives you verified IDs based on what the sandbox actually observed, which is stronger than assigning techniques from memory.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec" id="task52">Task 5.2 — Export the IOC List</h2>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill">🖥 any.run Report</div><div class="ui-desc">IOC tab → Export — copy the full list into your notes</div></div>
+  <div class="ui-inner">
+    <div class="roadmap" style="margin:8px 0;border-left-color:rgba(34,211,238,0.25)">
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">1</div><div><div class="rm-title" style="font-size:13.5px">Click the <strong>IOC</strong> tab in the report</div><div class="rm-desc">any.run compiles every observable indicator into a single tab: hashes, IPs, domains, URLs, registry keys, and file paths.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">2</div><div><div class="rm-title" style="font-size:13.5px">Click <strong>Export IOCs</strong> — download as JSON or copy as CSV</div><div class="rm-desc">The exported list is the deliverable you would provide to a threat intelligence platform, a SIEM team, or a firewall administrator.</div></div></div>
+      <div class="rm-item" style="padding-left:18px"><div class="rm-step" style="min-width:22px;color:var(--cyan)">3</div><div><div class="rm-title" style="font-size:13.5px">Verify the list against your manual findings from Parts 2–4</div><div class="rm-desc">Compare the IOCs in the export against what you recorded. Are there any in the export you missed? Any in your notes that the automated export did not include?</div></div></div>
+    </div>
+    <div class="box success" style="margin-top:10px">
+      <div class="bx-label">✓ Cross-referencing catches gaps in both directions</div>
+      <p>Automated IOC extraction occasionally misses behavioural indicators that an analyst would flag — an unusual process path, a suspicious command line argument, a file written to an unexpected location. Manual analysis occasionally misses technical indicators that the automated engine catches. Comparing both is not redundant — it is the validation step that makes your IOC list complete.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ PART 6 ═══════════════ -->
+<div class="divider am" id="part6">PART 6 — IR EVIDENCE PACK</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~35 min · Four deliverables · Submit as a single document on WebLearn</p>
+
+<p>You have now completed five parts of evidence collection. Part 6 asks you to produce four specific deliverables from what you found — the same four things a real analyst hands off at the end of a sandbox investigation. Together they form your <strong>IR Evidence Pack</strong>: the document that travels from the analyst to the IR team, the CISO, and the IT remediation team.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📦</div><div><div class="ch-title">Why four deliverables instead of one timeline</div><div class="ch-sub">Different audiences need different views of the same evidence</div></div></div>
+  <div class="concept-body">
+    <p>A timeline answers "what happened and when?" — useful for the IR analyst and the legal team. But the person who configures the firewall needs a prioritised IOC list, not a narrative. The IT engineer cleaning the infected host needs a remediation checklist with specific registry paths and file locations. The CISO briefing the board needs two sentences that explain the business risk without technical jargon. The same investigation produces all four — and an analyst who can only produce the timeline is doing a fraction of the job.</p>
+    <p>This is also the task that most clearly differentiates depth of analysis. A surface-level investigation produces a thin timeline with three rows and vague IOCs. A thorough investigation produces a timeline with eight rows, a prioritised IOC table with confidence levels and rationale, a complete remediation checklist, and a well-written executive summary. The evidence does not change — the analytical quality does.</p>
+  </div>
+</div>
+
+<!-- ── DELIVERABLE 1: TIMELINE ── -->
+<h2 class="sec">Deliverable 1 — MITRE ATT&amp;CK Timeline</h2>
+
+<p>Build a table that orders every observable event from the infection chronologically, maps each to a MITRE ATT&CK technique, and assigns a confidence level. Every row must be sourced to a specific any.run panel — not to the report in general.</p>
+
+<div class="box info">
+  <div class="bx-label">📐 Required columns</div>
+  <p><strong>1. Timestamp</strong> — relative time from sandbox start (T+0s, T+4s, T+62s etc.) Use "Pre-capture" for events before the sandbox run.</p>
+  <p><strong>2. Event</strong> — one specific sentence. Name the file, the PID, the IP address, the registry key. No vague descriptions like "malware executed."</p>
+  <p><strong>3. Evidence Source</strong> — the exact panel. "Process Tree → wscript.exe node, CMD field" or "TCP Connections panel, aspnet_compiler.exe PID 8252 → port 587." Never just "any.run report."</p>
+  <p><strong>4. MITRE ATT&amp;CK</strong> — sub-technique ID and name. T1059.007 not T1059. Use IDs from the ATT&CK tab, not from memory.</p>
+  <p><strong>5. Confidence</strong> — High (directly observed), Medium (inferred from observed indicators + known TTP), or Low (threat intelligence — not observed in this run).</p>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">Events your timeline must cover — at minimum</div>
+  <ul>
+    <li><strong>Phishing email delivery</strong> — pre-capture. Low confidence. Source: AgentTesla threat intelligence. Why include it? The remediation team needs to know to quarantine the email and check for other recipients in the mail server logs.</li>
+    <li><strong>User opened the .js file</strong> — inferred from explorer.exe as parent of wscript.exe. Medium confidence. The parent process confirms it was a user desktop action, not a scheduled task or a macro.</li>
+    <li><strong>wscript.exe executed the JavaScript</strong> — T+0. Process Tree. High confidence. Note the file extension trick if present.</li>
+    <li><strong>PowerShell launched with bypass and hidden flags</strong> — T+[n]s. Process Tree, powershell.exe CMD field. High confidence. Three separate evasion techniques in one command line.</li>
+    <li><strong>Payload dropped to C:\Temp</strong> — T+[n]s. Files tab, wscript.exe drop. High confidence. Full path and hash.</li>
+    <li><strong>aspnet_compiler.exe injected</strong> — T+[n]s. Process Tree, injection icon. High confidence. This is the pivot point — everything malicious after this row comes from the injected process.</li>
+    <li><strong>taskkill.exe killed wscript.exe</strong> — T+[n]s. Process Tree. High confidence. Anti-forensic indicator removal — T1070.004.</li>
+    <li><strong>Browser credential stores accessed</strong> — Behaviour tab, aspnet_compiler.exe. High or Medium depending on what your panel shows directly.</li>
+    <li><strong>SMTP exfiltration to C2 server</strong> — TCP Connections or MalConf. High if observed, Medium if MalConf only. Full IP and port.</li>
+    <li><strong>Persistence written</strong> — Registry tab or not observed. If not observed, Low confidence row sourced to known AgentTesla behaviour. Still include it — the remediation team checks for it regardless.</li>
+  </ul>
+</div>
+
+<!-- ── DELIVERABLE 2: IOC TABLE ── -->
+<h2 class="sec" id="ioc-table">Deliverable 2 — Prioritised IOC Table</h2>
+
+<p>The IOC table is what you hand to the firewall engineer and the threat intelligence platform team. It is not a dump of everything any.run found — it is a <strong>prioritised, annotated list</strong> that tells each recipient which IOC to act on first and why.</p>
+
+<div class="box tip">
+  <div class="bx-label">💡 Prioritisation is the analytical work — not the list itself</div>
+  <p>any.run's automated IOC export gives you the list. The table you build adds the prioritisation, the rationale, and the recommended action for each indicator. That is what makes it useful to the person receiving it. A list of 15 hashes with no context helps nobody. A table of 8 prioritised IOCs with "block immediately," "monitor," and "report to provider" annotations drives action.</p>
+</div>
+
+<div class="out-block vi">
+  <div class="ob-top"><div class="lbl">Required columns for your IOC table</div><div class="tag note">TABLE STRUCTURE</div></div>
+  <pre><span class="hl-v">IOC Type</span>      <span class="hl-v">Value</span>               <span class="hl-v">Source Panel</span>      <span class="hl-v">Confidence</span>  <span class="hl-v">Priority</span>    <span class="hl-v">Recommended Action</span>
+IP address    [C2 SMTP server IP]   TCP Connections   High        <span class="hl-r">IMMEDIATE</span>   Block outbound port 587 to this IP
+Domain        [mail.domain.com]     DNS + MalConf     High        <span class="hl-r">IMMEDIATE</span>   Block DNS resolution + report to registrar
+SHA-256       [injected PE hash]    Process Tree      High        HIGH        Add to AV exclusion / EDR detection rule
+File path     [C:\Temp\ps_*.ps1]    Files tab         High        HIGH        Hunt for this path pattern across all hosts
+Registry key  [HKCU\...\Run\*]      Registry tab      Med/High    HIGH        Check and remove on affected host
+SHA-256       [original sample]     Overview panel    High        HIGH        Add to email gateway block list
+SMTP sender   [address@domain]      MalConf           Medium      MEDIUM      Report to mail provider abuse team
+SMTP passwd   credentials present   MalConf           —           —           Do not reproduce — report to provider only</pre>
+</div>
+
+<div class="look-for">
+  <div class="lf-head">What makes a good IOC table</div>
+  <ul>
+    <li><strong>Immediate vs High vs Medium priority</strong> — the SMTP server IP gets Immediate because blocking it stops live exfiltration. The file path gets High because hunting for it across the fleet identifies other infected machines. The SMTP sender address gets Medium because reporting it depends on a third party responding.</li>
+    <li><strong>Every IOC sourced to a specific panel</strong> — "MalConf tab" and "TCP Connections, port 587" are specific. "Network activity" is not. If you cannot name the panel, you cannot be sure the IOC is real.</li>
+    <li><strong>Confidence reflects observed vs configured</strong> — an IP from the TCP Connections panel (observed behaviour) is High. The same IP from MalConf only (extracted configuration) is Medium. This distinction tells the firewall engineer whether the block is containment or precautionary.</li>
+    <li><strong>Do not include whitelisted Microsoft IPs</strong> — the automated export may include Windows Update and CRL check IPs. These are not malicious. Filtering them out is part of the analytical work.</li>
+  </ul>
+</div>
+
+<!-- ── DELIVERABLE 3: REMEDIATION CHECKLIST ── -->
+<h2 class="sec" id="remediation">Deliverable 3 — Host Remediation Checklist</h2>
+
+<p>This is what the IT engineer uses to clean the infected machine. It must be specific enough to follow without access to the sandbox report — every item needs an exact path, key name, or filename. A checklist that says "remove malware files" is useless. One that says "delete <code>C:\Temp\ps_9SNwW8XeJILn_*.ps1</code> and check for any <code>.ps1</code> file in C:\Temp" is actionable.</p>
+
+<div class="out-block gn">
+  <div class="ob-top"><div class="lbl">Checklist structure — replace placeholders with your actual values</div><div class="tag note">REMEDIATION</div></div>
+  <pre><span class="hl">NETWORK — do first, before touching the host</span>
+☐ Block outbound TCP port 587 to [C2 IP] at perimeter firewall
+☐ Block DNS resolution for [C2 mail hostname]
+☐ Pull firewall logs for [C2 IP] — identify any other internal hosts that connected
+
+<span class="hl">HOST — on the infected machine</span>
+☐ Isolate the machine from the network before beginning
+☐ Delete dropped script: C:\Temp\[ps_filename].ps1  (SHA-256: [hash])
+☐ Delete PowerShell module cache: [path from Files tab if present]
+☐ Check and remove registry Run key: [full HKCU path and value name]
+☐ Check for scheduled task: schtasks /query | findstr "[task name if observed]"
+☐ Check AppData for self-copy: dir %APPDATA%\Roaming\ /s /b | findstr ".exe"
+
+<span class="hl">CREDENTIALS — treat as compromised</span>
+☐ Reset all passwords stored in browser credential managers on this machine
+☐ Reset any FTP, email, or VPN credentials the machine had access to
+☐ Check for reuse of any credentials across other systems
+
+<span class="hl">VERIFICATION</span>
+☐ Re-run any.run or local AV scan on the cleaned machine before re-connecting
+☐ Monitor firewall logs for 48 hours post-remediation for reconnection attempts</pre>
+</div>
+
+<div class="box warn">
+  <div class="bx-label">⚠️ Persistence not observed ≠ persistence not present</div>
+  <p>If the registry tab in your sandbox report showed zero write events, that does not mean the malware has no persistence mechanism. The sandbox run may have ended before the persistence code executed — many AgentTesla samples write persistence only after the first successful exfiltration. Include the registry Run key check in your remediation checklist regardless, sourced to "known AgentTesla persistence behaviour — not directly observed in this run window." The engineer checks it anyway. If it is there, it gets removed. If it is not, nothing was lost by checking.</p>
+</div>
+
+<!-- ── DELIVERABLE 4: EXECUTIVE SUMMARY ── -->
+<h2 class="sec" id="exec-summary">Deliverable 4 — Executive Summary</h2>
+
+<p>Two paragraphs. No technical jargon. Written for a non-technical manager or CISO who needs to understand what happened, what data is at risk, and what is being done about it — in under two minutes of reading.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">📄</div><div><div class="ch-title">What makes an executive summary effective</div><div class="ch-sub">The audience does not know what aspnet_compiler.exe is — and should not have to</div></div></div>
+  <div class="concept-body">
+    <p><strong>Paragraph 1 — What happened:</strong> One or two sentences on the incident. No process names, no port numbers. Example: "A malicious file disguised as an invoice was opened on a finance workstation. It silently installed credential-stealing software that captured saved passwords from the browser and attempted to transmit them to an external server." That is the entire technical story, translated.</p>
+    <p><strong>Paragraph 2 — What is at risk and what is being done:</strong> Be specific about the data category — "browser-stored passwords, potentially including email and financial accounts" — and state the containment and remediation actions in plain language: "The infected machine has been isolated. The destination server has been blocked at the network perimeter. Affected passwords are being reset." End with the confidence level: "Analysis of the malware's configuration confirms the intended destination — we are treating all passwords on this machine as compromised regardless of whether transmission was completed."</p>
+    <p>The hardest part of an executive summary is resisting the urge to include technical detail to demonstrate rigour. The detail belongs in the timeline and IOC table. The summary's job is to drive decisions, not to impress with knowledge.</p>
+  </div>
+</div>
+
+<div class="out-block vi">
+  <div class="ob-top"><div class="lbl">Structure only — write the actual content from your own sandbox findings</div><div class="tag note">EXECUTIVE SUMMARY</div></div>
+  <pre><span class="hl-v">Paragraph 1 — What happened</span>
+On [date], a workstation in [department] was compromised via a malicious file
+delivered by email. The file, disguised as [describe without technical terms],
+silently installed software designed to steal [describe data types plainly].
+The infection was identified by [how — firewall alert / sandbox submission / other].
+
+<span class="hl-v">Paragraph 2 — Impact, containment, and next steps</span>
+[Data at risk — plain language]. The infected machine has been isolated.
+[Containment actions taken — plain language]. We are treating [credential category]
+as compromised and [reset/review] is underway. The malware has been confirmed as
+[family name] by automated analysis. No evidence of [data already confirmed not at risk]
+was found in this run. Further monitoring is in place for [timeframe].</pre>
+</div>
+
+<!-- ── SUBMISSION ── -->
+<div class="scenario-card" style="border-color:rgba(16,185,129,0.45);border-left-color:var(--green)">
+  <div class="sc-ref" style="color:rgba(16,185,129,0.6)">// Submission — CC7007 WebLearn Discussion Board</div>
+  <div class="sc-body">
+    <p>Post your complete IR Evidence Pack to the <strong>CC7007 WebLearn discussion board</strong> as a single document — Word, PDF, or typed directly into the post. It must contain all four deliverables.</p>
+    <p><strong>At the top of your submission</strong> — paste the task URL: <code>https://app.any.run/tasks/5742b61e-2fa4-445e-9c5f-b77ccb301936</code>. This is mandatory. Your instructor will use it to verify your findings directly against the report panels.</p>
+    <p><strong>Deliverable 1 — Timeline</strong> — all five columns, all required events, real values from your sandbox panels.</p>
+    <p><strong>Deliverable 2 — IOC Table</strong> — prioritised, sourced, with recommended action per IOC. No whitelisted Microsoft IPs.</p>
+    <p><strong>Deliverable 3 — Remediation Checklist</strong> — specific enough to follow without the sandbox report. Exact paths, key names, and filenames.</p>
+    <p><strong>Deliverable 4 — Executive Summary</strong> — two paragraphs, no technical jargon, written for a non-technical manager. If a classmate who has never studied cybersecurity cannot understand it, rewrite it.</p>
+    <p><strong>After posting</strong> — read two classmates' IOC tables and compare their priority assignments against yours. Bring one specific disagreement to the next session: which IOC did they prioritise differently from you, and whose reasoning is stronger?</p>
+  </div>
+</div>
+
+
+<!-- ═══════════════ RECAP ═══════════════ -->
+<div class="divider" id="recap">📋 WHAT DID THIS INVESTIGATION DEMONSTRATE?</div>
+
+<div class="recap-grid">
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(34,211,238,0.2);border-left:4px solid var(--cyan)">
+    <div class="rc-title" style="color:var(--cyan)">1 — A sandbox report is a complete behavioural record, not just a verdict</div>
+    <div class="rc-body">The threat score and family label at the top of any.run tells you what the malware is. The process tree, network panel, file activity, and registry tabs tell you what it did — and in enough detail to drive a remediation checklist, an IOC export, and an incident timeline. A sandbox is not a yes/no malware detector. It is a forensic environment.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(236,72,153,0.2);border-left:4px solid var(--pink)">
+    <div class="rc-title" style="color:var(--pink-l)">2 — Process injection hides malicious network activity inside legitimate processes</div>
+    <div class="rc-body">Every network connection and credential access in this run came from a legitimate Windows binary (RegSvcs.exe, AppLaunch.exe). A network log showing connections from a signed Microsoft process looks benign — until you trace the process tree and see it was spawned by a newly-dropped executable from AppData. The parent-child relationship is what exposes the deception.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,0.2);border-left:4px solid var(--amber)">
+    <div class="rc-title" style="color:var(--amber-l)">3 — The exfiltration channel determines the response action</div>
+    <div class="rc-body">SMTP exfiltration means credentials were emailed to an attacker inbox — block the SMTP server IP and reset all passwords. HTTP exfiltration means there is a web panel — block the panel IP and investigate what other victims may have uploaded to it. Telegram means a persistent bot endpoint that cannot easily be network-blocked. Identifying the channel is not just academic — it directly changes the actions the IR team takes in the first 30 minutes of response.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(16,185,129,0.2);border-left:4px solid var(--green)">
+    <div class="rc-title" style="color:var(--green-l)">4 — Automated IOC extraction is not a substitute for manual analysis</div>
+    <div class="rc-body">any.run's automated IOC export is fast and comprehensive for technical indicators. But it does not make analytical judgements: it does not tell you which IOC is highest priority, why the HKCU Run key matters more than the Temp file, or what the SMTP recipient address tells you about the attacker's infrastructure. Manual analysis adds the context and prioritisation that turns a list of indicators into an actionable intelligence product.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(124,58,237,0.2);border-left:4px solid var(--violet)">
+    <div class="rc-title" style="color:var(--violet-l)">5 — The IR Evidence Pack is four different views of the same evidence</div>
+    <div class="rc-body">The timeline answers "what happened and when." The IOC table answers "what do I block and in what order." The remediation checklist answers "what do I remove from the host." The executive summary answers "what does this mean for the business." One investigation — four audiences — four documents. The analytical skill is not finding the evidence, which the sandbox largely does for you. It is translating the evidence into the form that is useful to each recipient and making the prioritisation judgements that drive action.</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ QUIZ ═══════════════ -->
+<div class="divider am" id="quiz">📝 KNOWLEDGE CHECK</div>
+<p style="color:var(--muted);font-size:14px;font-style:italic;margin-bottom:18px">Five questions. One correct answer each. Based on this workshop — no outside knowledge required.</p>
+
+<div class="quiz-progress">
+  <span class="qp-lbl">Progress</span>
+  <div class="qp-dot" id="dot-0"></div>
+  <div class="qp-dot" id="dot-1"></div>
+  <div class="qp-dot" id="dot-2"></div>
+  <div class="qp-dot" id="dot-3"></div>
+  <div class="qp-dot" id="dot-4"></div>
+</div>
+
+<div class="qcard" id="qc-0">
+  <div class="qcard-head">
+    <div class="q-tag">Question 1</div>
+    <div class="q-text">In Task 2.1, the process tree showed <code>RegSvcs.exe</code> as a child of the AgentTesla dropper with a 💉 injection icon. Why does this matter for network log analysis?</div>
+  </div>
+  <div class="q-opts" id="qo-0">
+    <button class="q-opt" onclick="ans(0,0,false)"><span class="opt-let">A</span><span class="opt-txt">RegSvcs.exe is itself malicious software — its presence in any process tree is an immediate indicator of compromise without needing to verify the parent relationship or the injection status. Any network connection attributed to it should be treated as attacker-controlled by default.</span></button>
+    <button class="q-opt" onclick="ans(0,1,true)"><span class="opt-let">B</span><span class="opt-txt">RegSvcs.exe is a legitimate signed Windows binary — network connections attributed to it in a log look benign unless you have already traced the process tree and confirmed it was spawned by a malicious dropper. Injection disguises attacker activity inside a process with a trustworthy name.</span></button>
+    <button class="q-opt" onclick="ans(0,2,false)"><span class="opt-let">C</span><span class="opt-txt">RegSvcs.exe cannot make network connections — it has no networking capability. The injection icon therefore means the dropper was using RegSvcs.exe's file access privileges, not its network stack. Any network activity in the sandbox came from the dropper directly, not from the injected process.</span></button>
+    <button class="q-opt" onclick="ans(0,3,false)"><span class="opt-let">D</span><span class="opt-txt">The injection icon in any.run means the process was started by the operating system kernel rather than by the dropper. This is normal behaviour for .NET applications and does not indicate malicious activity — the flag exists for informational purposes and does not affect how network logs are interpreted.</span></button>
+  </div>
+  <div class="q-fb" id="qf-0"></div>
+</div>
+
+<div class="qcard" id="qc-1">
+  <div class="qcard-head">
+    <div class="q-tag">Question 2</div>
+    <div class="q-text">Your sample's SMTP panel showed an email sent to <code>attacker@protonmail.com</code> with browser credential data in the body. Why should the SMTP server IP — not the ProtonMail address — be your highest-priority firewall block?</div>
+  </div>
+  <div class="q-opts" id="qo-1">
+    <button class="q-opt" onclick="ans(1,0,false)"><span class="opt-let">A</span><span class="opt-txt">ProtonMail addresses are always disposable — the attacker has already abandoned the inbox by the time any analysis is completed. Blocking it is therefore pointless regardless of priority. The SMTP server IP is the only actionable indicator because it represents infrastructure the attacker must maintain to receive future exfiltration data.</span></button>
+    <button class="q-opt" onclick="ans(1,1,false)"><span class="opt-let">B</span><span class="opt-txt">Blocking a ProtonMail address at the firewall is technically impossible — mail providers use shared IP ranges that cannot be blocked selectively. The SMTP server IP is blocked instead because it is a dedicated attacker-controlled relay, not a shared mail provider IP.</span></button>
+    <button class="q-opt" onclick="ans(1,2,true)"><span class="opt-let">C</span><span class="opt-txt">Blocking the SMTP relay IP stops the outbound connection before credential data leaves the network — immediate containment. Blocking the ProtonMail address affects only that one inbox but the attacker could receive the same data through any SMTP relay. Stopping the transport layer is more effective than stopping one delivery address.</span></button>
+    <button class="q-opt" onclick="ans(1,3,false)"><span class="opt-let">D</span><span class="opt-txt">The ProtonMail address should actually be the higher priority — it is the attacker's collection point and reporting it to ProtonMail's abuse team can disable their access to already-exfiltrated data. Blocking the SMTP IP only prevents future exfiltration and does not address credentials that have already been transmitted.</span></button>
+  </div>
+  <div class="q-fb" id="qf-1"></div>
+</div>
+
+<div class="qcard" id="qc-2">
+  <div class="qcard-head">
+    <div class="q-tag">Question 3</div>
+    <div class="q-text">The registry tab showed a WRITE to <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Run</code>. The report did not show any <code>HKLM</code> Run key write. What does the use of <code>HKCU</code> specifically tell you about the infection?</div>
+  </div>
+  <div class="q-opts" id="qo-2">
+    <button class="q-opt" onclick="ans(2,0,false)"><span class="opt-let">A</span><span class="opt-txt">HKCU persistence only affects the current user session — it does not survive a logout. The attacker chose HKCU because it is faster to write than HKLM. Once the user logs out, the malware terminates and would need to re-infect the machine on the next login using a different delivery vector.</span></button>
+    <button class="q-opt" onclick="ans(2,1,false)"><span class="opt-let">B</span><span class="opt-txt">HKCU Run keys are not executed automatically on startup — they require the user to manually trigger them by opening the registry editor. The malware is therefore not persistent in the traditional sense; it relies on the user accidentally running the dropper again to reload the payload.</span></button>
+    <button class="q-opt" onclick="ans(2,2,true)"><span class="opt-let">C</span><span class="opt-txt">Writing to HKCU requires only standard user privileges — no administrator rights, no UAC prompt. The infection established persistence silently without triggering any elevation dialog, which means it could succeed on a fully-patched machine with a non-admin user account and leave no UAC event in the Windows Security log.</span></button>
+    <button class="q-opt" onclick="ans(2,3,false)"><span class="opt-let">D</span><span class="opt-txt">HKCU persistence applies to every user on the machine because the Current User hive is shared across all local accounts at the hardware level. Writing to HKCU is therefore more impactful than HKLM because it guarantees execution regardless of which account logs in — all accounts trigger the same Run key on startup.</span></button>
+  </div>
+  <div class="q-fb" id="qf-2"></div>
+</div>
+
+<div class="qcard" id="qc-3">
+  <div class="qcard-head">
+    <div class="q-tag">Question 4</div>
+    <div class="q-text">In Task 5.2 you compared the automated IOC export against your manual findings from Parts 2–4. Your notes contained a suspicious AppData file path that did not appear in the automated export. What is the correct action?</div>
+  </div>
+  <div class="q-opts" id="qo-3">
+    <button class="q-opt" onclick="ans(3,0,false)"><span class="opt-let">A</span><span class="opt-txt">Discard the file path — if the automated engine did not extract it, it is not a confirmed IOC. The any.run extraction algorithm is trained on millions of samples and its omissions are deliberate. Manual notes that contradict automated output should always be treated as analyst error rather than a gap in the tool.</span></button>
+    <button class="q-opt" onclick="ans(3,1,false)"><span class="opt-let">B</span><span class="opt-txt">Escalate immediately — an IOC that the automated tool missed is evidence that the malware contains an anti-analysis technique that evaded the sandbox. The file path should be submitted to any.run's support team for review before being used in any detection rule.</span></button>
+    <button class="q-opt" onclick="ans(3,2,false)"><span class="opt-let">C</span><span class="opt-txt">Include the file path in the IOC list and remove the automated export entirely — a human analyst observing a file path in the sandbox panel is a more reliable source than algorithmic extraction, which is known to produce false positives. Hybrid approaches introduce contradictions that undermine the credibility of the IOC list.</span></button>
+    <button class="q-opt" onclick="ans(3,3,true)"><span class="opt-let">D</span><span class="opt-txt">Include the file path in your IOC list with a note that it came from manual panel review rather than automated extraction. Verify it against the Files tab to confirm the observation. Automated tools extract consistently but not exhaustively — manual analysis adds the indicators that behavioural heuristics do not catch.</span></button>
+  </div>
+  <div class="q-fb" id="qf-3"></div>
+</div>
+
+<div class="qcard" id="qc-4">
+  <div class="qcard-head">
+    <div class="q-tag">Question 5</div>
+    <div class="q-text">Your IOC table includes the SMTP server IP at IMMEDIATE priority and the SMTP sender email address at MEDIUM priority. A classmate argues both should be IMMEDIATE because both are confirmed attacker infrastructure. What is the strongest counterargument?</div>
+  </div>
+  <div class="q-opts" id="qo-4">
+    <button class="q-opt" onclick="ans(4,0,false)"><span class="opt-let">A</span><span class="opt-txt">The classmate is correct — any IOC derived from MalConf should be treated as IMMEDIATE regardless of type. The configuration was extracted from the binary itself, which is the highest possible evidence quality. Prioritisation based on IOC type rather than evidence quality introduces inconsistency into the block decision.</span></button>
+    <button class="q-opt" onclick="ans(4,1,true)"><span class="opt-let">B</span><span class="opt-txt">Blocking the SMTP server IP at the network perimeter stops the outbound connection — the IR team can execute that action immediately with no dependency. Blocking or reporting the sender email address depends on a third-party mail provider responding to an abuse report, which takes time and may not happen. Priority reflects actionability, not just evidence quality.</span></button>
+    <button class="q-opt" onclick="ans(4,2,false)"><span class="opt-let">C</span><span class="opt-txt">The sender email address is MEDIUM because it came from MalConf rather than from observed traffic. IOC confidence and priority are the same thing — a Medium confidence IOC is always a Medium priority block. Promoting it to IMMEDIATE would misrepresent the strength of the evidence to the firewall engineer making the block decision.</span></button>
+    <button class="q-opt" onclick="ans(4,3,false)"><span class="opt-let">D</span><span class="opt-txt">The sender address should be omitted entirely from the IOC table. It is a third-party email service credential that belongs only in the remediation checklist as a password reset action, not in the IOC table as a network block. Including it in both documents creates duplication that confuses the recipient about which team is responsible for acting on it.</span></button>
+  </div>
+  <div class="q-fb" id="qf-4"></div>
+</div>
+
+<div class="scoreboard" id="scoreboard">
+  <div class="sb-t">// Investigation Complete</div>
+  <div class="sb-n" id="sb-num"></div>
+  <div class="sb-of">CORRECT OUT OF 5</div>
+  <div class="sb-msg" id="sb-msg"></div>
+  <button class="sb-btn" onclick="resetQuiz()">↺ Try Again</button>
+</div>
+
+<div style="height:50px"></div>
+</main>
+</div>
+
+<footer>
+  <div>
+    <div class="f-course">CC7007 · Malware Sandbox Investigation Workshop</div>
+    <div class="f-mod">AgentTesla · any.run</div>
+  </div>
+  <div class="f-right">
+    <div class="f-name">Real Samples · any.run Public Intelligence Feed</div>
+    <div class="f-sub">any.run · Kali Linux 2025 · Browser-based Analysis</div>
+    <div style="font-family:var(--head);font-size:15px;font-weight:700;color:var(--cyan);margin-top:6px">Fatma Yasmine Loumachi</div>
+  </div>
+</footer>
+
+<script>
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      const m = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
+      if (m) m.classList.add('active');
+    }
+  });
+}, { rootMargin: '-10% 0px -70% 0px' });
+document.querySelectorAll('[id]').forEach(el => obs.observe(el));
+
+const CORRECT = [1, 2, 2, 3, 1];
+const TOTAL = 5;
+let score = 0, done = new Array(TOTAL).fill(false);
+
+const FB = [
+  {
+    c: "Correct. RegSvcs.exe is a legitimate, Microsoft-signed binary. When network logs show connections originating from it, those connections look like normal Windows .NET infrastructure activity — not malicious. The deception only becomes visible when you trace the process tree and see that RegSvcs.exe was spawned by an executable dropped in AppData. Process injection is specifically designed to exploit the trust that analysts and security tools extend to legitimate process names.",
+    w: "Not quite. The key insight is that RegSvcs.exe is a legitimate Windows binary — its presence in a process tree is not inherently suspicious. What is suspicious is its parent: a newly-dropped executable from AppData spawning a system binary as a child and then injecting into it. Network connections from RegSvcs.exe look trustworthy in isolation. The process tree is what exposes them as attacker-controlled — which is exactly why reading the tree before the network panel is the correct investigation order."
+  },
+  {
+    c: "Correct. Blocking the SMTP relay IP stops the outbound TCP connection before any credential data crosses the network perimeter — that is containment. Blocking the ProtonMail recipient address does nothing to the transport layer; the malware will still connect to the SMTP server and the data will still leave the network, just perhaps to a different inbox. The SMTP server IP is the chokepoint for immediate network containment. The ProtonMail address is still a useful IOC for abuse reporting — but it is not the priority block.",
+    w: "Not quite. The distinction is between containment and notification. Blocking the SMTP relay IP stops data from leaving the network in future — that is the immediate containment action. Reporting the ProtonMail address is a notification action that may help recover access to already-exfiltrated data — useful, but slower and dependent on a third party. When choosing priority for firewall blocks, stop the outbound transport first, then address the destination."
+  },
+  {
+    c: "Correct. HKCU (Current User) is readable and writable by any standard Windows user account — no administrator rights are needed, no UAC elevation prompt appears. The infection therefore establishes reboot persistence without triggering any of the standard elevation-detection mechanisms that endpoint security tools and SOC analysts monitor. On a machine where the user has no admin rights — which is most corporate desktops — HKCU persistence is completely silent from an event-log perspective.",
+    w: "Not quite. HKCU Run keys do execute on startup — they run when the current user logs in, not manually. And HKCU is specific to the current user account, not shared. The forensically significant point is the privilege level: HKCU writes require only standard user rights, so no UAC prompt appears and no elevation event is logged. This is why HKCU persistence is the more common pattern in commodity malware — it succeeds on machines where admin access is locked down."
+  },
+  {
+    c: "Correct. Automated IOC extraction is consistent but not exhaustive. An analyst observing a file path directly in the Files panel — seeing the process write it, seeing its hash — is making a valid observation that the automated engine may not have flagged because it did not meet a heuristic threshold. The right approach is to include the manually-observed indicator with a clear source note and verify it against the panel data. Both the automated list and the manual observations contribute to a complete IOC set.",
+    w: "Not quite. The automated export and manual analysis are complementary, not competing. The automated engine is consistent and fast; it captures most technical indicators reliably. Manual analysis catches what the heuristics miss — unusual paths, suspicious timing, contextual indicators. Discarding one in favour of the other produces an incomplete IOC list. The correct approach is to include both, with clear source notes on each indicator, and verify any discrepancy against the raw panel data."
+  },
+  {
+    c: "Correct. Priority in an IOC table reflects actionability — what can the receiving team act on immediately, with no external dependencies? Blocking an IP at the network perimeter is a single firewall rule change that the IR team can execute in minutes. Reporting an email address to a mail provider is an action that depends on that provider's abuse team responding, which may take days or not happen at all. Both are the right thing to do — but they are not the same urgency because the IR team controls one and not the other.",
+    w: "Not quite. The key distinction in IOC prioritisation is not evidence quality — it is actionability. The SMTP server IP is IMMEDIATE because blocking it is a single firewall change the IR team can execute now. The sender address is MEDIUM because acting on it requires a third-party mail provider to respond to an abuse report. Confidence level and priority level are related but not the same thing. A High confidence indicator that requires third-party action to mitigate is not necessarily your highest-priority block."
+  }
+];
+
+function ans(q, opt, correct) {
+  if (done[q]) return;
+  done[q] = true;
+  const opts = document.querySelectorAll(`#qo-${q} .q-opt`);
+  const fb = document.getElementById(`qf-${q}`);
+  const card = document.getElementById(`qc-${q}`);
+  const dot = document.getElementById(`dot-${q}`);
+  opts.forEach((b, i) => {
+    b.disabled = true;
+    if (i === opt) b.classList.add(correct ? 'correct' : 'wrong');
+    else if (i === CORRECT[q] && !correct) b.classList.add('correct');
+    else b.classList.add('dimmed');
+  });
+  fb.className = `q-fb show ${correct ? 'cfb' : 'wfb'}`;
+  fb.innerHTML = `<div class="fb-badge">${correct ? '✓ Correct' : '✗ Not quite'}</div>${FB[q][correct ? 'c' : 'w']}`;
+  card.classList.add(correct ? 'ac' : 'aw');
+  dot.classList.add(correct ? 'c' : 'w');
+  if (correct) score++;
+  if (done.every(Boolean)) showScore();
+}
+
+function showScore() {
+  const board = document.getElementById('scoreboard');
+  const num = document.getElementById('sb-num');
+  const msg = document.getElementById('sb-msg');
+  board.classList.add('show');
+  const pct = score / TOTAL;
+  num.textContent = `${score} / ${TOTAL}`;
+  num.style.color = pct === 1 ? 'var(--green)' : pct >= 0.6 ? 'var(--cyan)' : 'var(--amber)';
+  msg.textContent = pct === 1
+    ? "Perfect. You understood not just the mechanics of each sandbox panel but why each piece of evidence matters for response decisions."
+    : pct >= 0.6
+    ? "Good. Re-read the concept boxes for the questions you missed — focus on why each observation matters, not just what it shows."
+    : "Work back through the investigation steps. The goal is to connect sandbox observations to response decisions — not just to read the panels correctly.";
+  board.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  score = 0;
+  done = new Array(TOTAL).fill(false);
+  for (let i = 0; i < TOTAL; i++) {
+    document.getElementById(`qc-${i}`).classList.remove('ac', 'aw');
+    document.querySelectorAll(`#qo-${i} .q-opt`).forEach(b => {
+      b.disabled = false;
+      b.classList.remove('correct', 'wrong', 'dimmed');
+    });
+    const f = document.getElementById(`qf-${i}`);
+    f.className = 'q-fb'; f.innerHTML = '';
+    document.getElementById(`dot-${i}`).className = 'qp-dot';
+  }
+  document.getElementById('scoreboard').classList.remove('show');
+  document.getElementById('quiz').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
