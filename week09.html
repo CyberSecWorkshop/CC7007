@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CC7007 — Workshop 9: AsyncRAT Analysis with ANY.RUN</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --dark:      #080B10;
+  --surface:   #0E1520;
+  --card:      #121A27;
+  --panel:     #070A0F;
+  --border:    rgba(255,255,255,0.07);
+  --violet:    #7C3AED;
+  --violet-l:  #A78BFA;
+  --violet-d:  #4C1D95;
+  --pink:      #EC4899;
+  --pink-l:    #F9A8D4;
+  --cyan:      #22D3EE;
+  --cyan-d:    #0891B2;
+  --green:     #10B981;
+  --green-l:   #6EE7B7;
+  --amber:     #F59E0B;
+  --amber-l:   #FDE68A;
+  --red:       #EF4444;
+  --red-l:     #FCA5A5;
+  --orange:    #F97316;
+  --teal:      #14B8A6;
+  --teal-l:    #99F6E4;
+  --text:      #CBD5E1;
+  --muted:     #64748B;
+  --white:     #F8FAFC;
+  --mono:      'JetBrains Mono', monospace;
+  --head:      'Syne', sans-serif;
+  --body:      'DM Sans', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.85;display:flex;flex-direction:column;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--panel);border-right:1px solid rgba(20,184,166,0.18);overflow-y:auto;z-index:100;padding-bottom:80px}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid rgba(20,184,166,0.15);margin-bottom:4px}
+.sb-week{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--pink);display:block;margin-bottom:5px;text-transform:uppercase}
+.sb-title{font-family:var(--head);font-size:13px;font-weight:700;color:var(--teal-l);line-height:1.35}
+.nav-group{padding:12px 18px 3px;font-family:var(--mono);font-size:8px;letter-spacing:2.5px;color:rgba(100,116,139,0.5);text-transform:uppercase}
+.sidebar a{display:block;padding:5px 18px 5px 22px;font-size:12px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all .18s;line-height:1.4}
+.sidebar a:hover,.sidebar a.active{color:var(--teal);border-left-color:var(--teal);background:rgba(20,184,166,0.04)}
+.sidebar a.flag-a{color:#6EE7B7}
+.sidebar a.flag-a:hover,.sidebar a.flag-a.active{color:var(--green);border-left-color:var(--green);background:rgba(16,185,129,0.05)}
+.layout{display:flex;flex:1}
+.main{margin-left:240px;padding:0 48px 80px;max-width:980px;width:100%}
+.hero{background:linear-gradient(150deg,#050709 0%,#071820 55%,#050709 100%);border-bottom:2px solid var(--teal);padding:54px 48px 46px;margin:0 -48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-40px;width:420px;height:420px;background:radial-gradient(circle,rgba(20,184,166,0.13),transparent 62%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-50px;left:80px;width:260px;height:260px;background:radial-gradient(circle,rgba(236,72,153,0.07),transparent 65%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(20,184,166,0.10);border:1px solid rgba(20,184,166,0.45);color:var(--teal-l);font-family:var(--mono);font-size:10px;letter-spacing:3px;padding:5px 14px;border-radius:3px;margin-bottom:20px;text-transform:uppercase}
+.hero h1{font-family:var(--head);font-size:48px;font-weight:800;color:var(--white);line-height:1.05;margin-bottom:14px}
+.hero h1 em{color:var(--teal-l);font-style:normal}
+.hero p.tagline{font-size:15px;color:var(--muted);font-weight:300;max-width:700px;margin-bottom:28px;line-height:1.75}
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted)}
+.chip b{color:var(--text);font-weight:500}
+.chip.hi b{color:var(--teal-l)}
+.chip.warn b{color:var(--amber)}
+.chip.cyan b{color:var(--cyan)}
+.chip.new b{color:var(--pink-l)}
+.divider{margin:52px 0 24px;padding:12px 22px 12px 26px;background:var(--panel);border:1px solid rgba(20,184,166,0.22);border-left:5px solid var(--teal);border-radius:0 8px 8px 0;font-family:var(--head);font-size:14px;font-weight:700;color:var(--teal-l);letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.divider.cyan-d{border-left-color:var(--cyan);color:var(--cyan)}
+.divider.green-d{border-left-color:var(--green);color:var(--green)}
+.divider.amber-d{border-left-color:var(--amber);color:var(--amber)}
+.divider.pink-d{border-left-color:var(--pink);color:var(--pink)}
+.divider.red-d{border-left-color:var(--red);color:var(--red-l)}
+.divider.purple-d{border-left-color:var(--violet);color:var(--violet-l)}
+.divider.teal-d{border-left-color:var(--teal);color:var(--teal-l)}
+h2.sec{font-family:var(--head);font-size:22px;font-weight:700;color:var(--teal-l);margin:30px 0 10px;border-bottom:1px solid rgba(20,184,166,0.2);padding-bottom:7px}
+h3.sub{font-family:var(--head);font-size:13px;font-weight:700;color:var(--pink);letter-spacing:1.5px;text-transform:uppercase;margin:20px 0 8px}
+p{margin-bottom:13px;font-size:14.5px;line-height:1.85}
+strong{color:var(--white);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;color:var(--teal);background:rgba(20,184,166,0.08);padding:2px 7px;border-radius:3px}
+ul.normal{padding-left:22px;margin-bottom:14px}
+ul.normal li{margin-bottom:6px;font-size:14.5px;line-height:1.7}
+.scenario-card{background:linear-gradient(135deg,#0B0E18,#071620);border:1px solid rgba(236,72,153,0.35);border-left:5px solid var(--pink);border-radius:8px;padding:26px 30px;margin:16px 0;position:relative;overflow:hidden}
+.scenario-card::after{content:'🕵️';position:absolute;right:18px;top:14px;font-size:36px;opacity:.1}
+.sc-ref{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(236,72,153,0.5);margin-bottom:10px;text-transform:uppercase}
+.sc-body{font-size:14.5px;color:#C8C8C8;line-height:1.85}
+.sc-body p{color:#C8C8C8;font-size:14.5px;margin-bottom:10px}
+.sc-body p:last-child{margin:0}
+.concept{background:var(--card);border:1px solid rgba(20,184,166,0.2);border-radius:10px;margin:16px 0;overflow:hidden}
+.concept-header{background:rgba(20,184,166,0.06);border-bottom:1px solid rgba(20,184,166,0.14);padding:13px 20px;display:flex;align-items:center;gap:12px}
+.concept-header .ch-icon{font-size:21px}
+.concept-header .ch-title{font-family:var(--head);font-size:16px;font-weight:700;color:var(--teal-l)}
+.concept-header .ch-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.concept-body{padding:18px 22px;font-size:14px;line-height:1.85;color:var(--text)}
+.concept-body p{font-size:14px;margin-bottom:10px}
+.concept-body p:last-child{margin:0}
+.box{border-radius:8px;padding:15px 19px;margin:13px 0;font-size:13.5px;line-height:1.7}
+.box .bx-label{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;font-weight:700;display:flex;align-items:center;gap:7px}
+.box.tip{background:rgba(20,184,166,0.05);border:1px solid rgba(20,184,166,0.22);color:var(--text)}
+.box.tip .bx-label{color:var(--teal)}
+.box.warn{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.28);color:#FDE68A}
+.box.warn .bx-label{color:var(--amber)}
+.box.danger{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.28);color:var(--red-l)}
+.box.danger .bx-label{color:var(--red)}
+.box.success{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.28);color:var(--green-l)}
+.box.success .bx-label{color:var(--green)}
+.box.purple{background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.28);color:var(--violet-l)}
+.box.purple .bx-label{color:var(--violet-l)}
+.box.new-skill{background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.32);color:var(--pink-l)}
+.box.new-skill .bx-label{color:var(--pink)}
+.box p{margin:0 0 6px;font-size:13.5px;line-height:1.65}
+.box p:last-child{margin:0}
+.box strong{color:var(--white)}
+.goal-box{background:linear-gradient(135deg,rgba(245,158,11,0.06),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.32);border-radius:8px;padding:16px 20px;margin:15px 0}
+.goal-box .gb-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--amber);text-transform:uppercase;margin-bottom:10px;font-weight:700;display:flex;align-items:center;gap:8px}
+.goal-box .gb-label::before{content:'🎯'}
+.goal-box ul{list-style:none;padding:0}
+.goal-box ul li{font-size:13.5px;color:var(--amber-l);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(245,158,11,0.1)}
+.goal-box ul li:last-child{border:none}
+.goal-box ul li::before{content:'→';position:absolute;left:0;color:var(--amber)}
+
+.step-task{background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.28);border-left:4px solid var(--violet);border-radius:8px;padding:16px 20px;margin:14px 0 16px}
+.step-task .st-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--violet-l);text-transform:uppercase;margin-bottom:9px;font-weight:700;display:flex;align-items:center;gap:8px}
+.step-task .st-label::before{content:'🧪'}
+.step-task ul{list-style:none;padding:0;margin:0}
+.step-task li{font-size:13.5px;color:var(--text);padding:5px 0 5px 20px;position:relative;line-height:1.65;border-bottom:1px solid rgba(255,255,255,0.04)}
+.step-task li:last-child{border:none}
+.step-task li::before{content:'→';position:absolute;left:0;color:var(--violet-l)}
+.screen-out{background:#050709;border:1px solid rgba(255,255,255,0.07);border-left:3px solid rgba(255,255,255,0.12);border-radius:6px;overflow:hidden;margin:9px 0}
+.screen-out .so-top{background:rgba(255,255,255,0.025);border-bottom:1px solid rgba(255,255,255,0.06);padding:5px 14px;display:flex;justify-content:space-between;align-items:center}
+.so-top .lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(100,116,139,0.55);text-transform:uppercase}
+.so-top .tag{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:1px 8px;border-radius:3px}
+.tag.ui{color:var(--teal);background:rgba(20,184,166,0.1)}
+.tag.panel{color:var(--cyan);background:rgba(34,211,238,0.1)}
+.tag.net{color:var(--violet-l);background:rgba(124,58,237,0.1)}
+.tag.proc{color:var(--pink-l);background:rgba(236,72,153,0.1)}
+.tag.ioc{color:var(--green);background:rgba(16,185,129,0.1)}
+.tag.mitre{color:var(--amber);background:rgba(245,158,11,0.1)}
+pre{font-family:var(--mono);font-size:12.5px;color:#94A3B8;line-height:1.8;padding:14px 16px;overflow-x:auto;white-space:pre}
+.screen-out pre{color:#94A3B8}
+.hl{color:#00E5A0!important;font-weight:700}
+.hl-v{color:#C4B5FD!important;font-weight:700}
+.hl-p{color:#F9A8D4!important;font-weight:700}
+.hl-a{color:#FDE68A!important;font-weight:700}
+.hl-r{color:#FCA5A5!important;font-weight:700}
+.hl-c{color:#67E8F9!important;font-weight:700}
+.hl-t{color:#99F6E4!important;font-weight:700}
+.hl-g{color:#6EE7B7!important;font-weight:700}
+.look-for{background:rgba(20,184,166,0.04);border:1px solid rgba(20,184,166,0.22);border-radius:7px;padding:14px 18px;margin:11px 0}
+.look-for .lf-head{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--teal-l);text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.look-for .lf-head::before{content:'👁'}
+.look-for ul{list-style:none;padding:0}
+.look-for ul li{font-size:13.5px;color:var(--text);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(255,255,255,0.04)}
+.look-for ul li:last-child{border:none}
+.look-for ul li::before{content:'→';position:absolute;left:0;color:var(--teal-l)}
+.flag-box{background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(16,185,129,0.02));border:1px solid rgba(16,185,129,0.4);border-left:5px solid var(--green);border-radius:8px;padding:22px 28px;margin:24px 0;position:relative;overflow:hidden}
+.flag-box::after{content:'⚑';position:absolute;right:20px;top:12px;font-size:34px;color:rgba(16,185,129,0.1);pointer-events:none}
+.fb-label{font-family:var(--mono);font-size:9.5px;letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:9px}
+.fb-val{font-family:var(--mono);font-size:12.5px;color:var(--green);margin-bottom:12px;word-break:break-all;line-height:1.7;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.18);border-radius:5px;padding:10px 14px}
+.fb-why{font-size:13px;color:var(--green-l);line-height:1.7;border-top:1px solid rgba(16,185,129,0.15);padding-top:11px}
+.roadmap{border-left:2px solid rgba(20,184,166,0.28);margin:16px 0 26px;padding-left:0}
+.rm-item{display:flex;gap:14px;padding:9px 0 9px 22px;position:relative}
+.rm-item::before{content:'';position:absolute;left:-7px;top:16px;width:12px;height:12px;background:var(--teal);border-radius:50%;border:2px solid var(--dark)}
+.rm-item.rm-flag::before{background:var(--green)}
+.rm-item.rm-new::before{background:var(--pink)}
+.rm-step{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--teal-l);min-width:56px;text-transform:uppercase;margin-top:2px;flex-shrink:0}
+.rm-item.rm-flag .rm-step{color:var(--green)}
+.rm-item.rm-new .rm-step{color:var(--pink)}
+.rm-title{font-family:var(--head);font-size:15px;font-weight:600;color:var(--white);margin-bottom:2px}
+.rm-desc{font-size:12.5px;color:var(--muted)}
+.new-badge{display:inline-flex;align-items:center;background:rgba(236,72,153,0.15);border:1px solid rgba(236,72,153,0.4);color:var(--pink);font-family:var(--mono);font-size:8px;letter-spacing:2px;padding:1px 7px;border-radius:3px;text-transform:uppercase;margin-left:7px;vertical-align:middle}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 20px}
+.grid-card{background:var(--card);border:1px solid rgba(20,184,166,0.16);border-radius:7px;padding:14px 16px}
+.grid-card .gc-cmd{font-family:var(--head);font-size:13px;font-weight:700;color:var(--teal);margin-bottom:5px}
+.grid-card .gc-desc{font-size:13px;color:var(--muted)}
+.diff-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px}
+.diff-table th{background:rgba(20,184,166,0.08);color:var(--teal-l);font-family:var(--head);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px;text-align:left;border:1px solid rgba(20,184,166,0.18)}
+.diff-table td{padding:9px 14px;border:1px solid rgba(255,255,255,0.06);color:var(--text);vertical-align:top}
+.diff-table tr:nth-child(even) td{background:rgba(255,255,255,0.015)}
+.diff-table td:first-child{color:var(--muted);font-family:var(--mono);font-size:12px}
+.diff-table td.hi{color:var(--green);font-weight:500}
+.diff-table td.lo{color:var(--amber);font-weight:500}
+.diff-table td.new-col{color:var(--pink-l);font-weight:500}
+.tl-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.tl-table th{background:rgba(16,185,129,0.1);color:var(--green-l);font-family:var(--head);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 12px;text-align:left;border:1px solid rgba(16,185,129,0.18)}
+.tl-table td{padding:9px 12px;border:1px solid rgba(255,255,255,0.06);color:var(--text);vertical-align:top;font-size:13px;line-height:1.55}
+.tl-table tr:nth-child(even) td{background:rgba(255,255,255,0.012)}
+.tl-table td:first-child{font-family:var(--mono);font-size:11.5px;color:var(--cyan);white-space:nowrap}
+.tl-table td.mitre{font-family:var(--mono);font-size:11px;color:var(--amber)}
+.tl-table td.conf-hi{color:var(--green);font-weight:600}
+.tl-table td.conf-med{color:var(--amber);font-weight:600}
+.tl-table td.conf-lo{color:rgba(239,68,68,0.8);font-weight:600}
+.recap-grid{display:flex;flex-direction:column;gap:11px;margin:16px 0 24px}
+.recap-card{border-radius:0 8px 8px 0;padding:16px 20px}
+.setup-step{margin:15px 0;border:1px solid rgba(20,184,166,0.18);border-radius:8px;overflow:hidden}
+.setup-step-head{background:rgba(20,184,166,0.06);border-bottom:1px solid rgba(20,184,166,0.12);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.sn{background:var(--teal);color:#022c22;font-family:var(--head);font-size:12px;font-weight:700;padding:2px 10px;border-radius:12px;flex-shrink:0}
+.sn.amber-n{background:var(--amber);color:#1a0e00}
+.sn.pink-n{background:var(--pink);color:var(--white)}
+.st-desc{font-size:13.5px;font-weight:500;color:var(--text)}
+.quiz-progress{display:flex;gap:7px;margin-bottom:20px;align-items:center}
+.qp-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);margin-right:4px;text-transform:uppercase}
+.qp-dot{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:all .3s}
+.qp-dot.c{background:var(--green);border-color:var(--green)}
+.qp-dot.w{background:var(--red);border-color:var(--red)}
+.qcard{background:var(--card);border:1px solid rgba(20,184,166,0.2);border-radius:10px;margin:13px 0;overflow:hidden;transition:border-color .25s}
+.qcard.ac{border-color:rgba(16,185,129,0.5)}
+.qcard.aw{border-color:rgba(239,68,68,0.4)}
+.qcard-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.q-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--teal-l);text-transform:uppercase;margin-bottom:7px}
+.q-text{font-size:14.5px;font-weight:500;color:var(--white);line-height:1.55}
+.q-opts{padding:12px 20px 16px;display:flex;flex-direction:column;gap:8px}
+.q-opt{display:flex;align-items:flex-start;gap:11px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:10px 13px;cursor:pointer;transition:all .18s;text-align:left;width:100%;font-family:var(--body)}
+.q-opt:hover:not(:disabled){background:rgba(20,184,166,0.07);border-color:rgba(20,184,166,0.4)}
+.q-opt:disabled{cursor:default}
+.opt-let{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,0.06);border-radius:4px;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s}
+.opt-txt{font-size:13.5px;color:var(--text);line-height:1.5}
+.q-opt.correct{background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.42)}
+.q-opt.correct .opt-let{background:var(--green);color:#052E16}
+.q-opt.correct .opt-txt{color:var(--green-l)}
+.q-opt.wrong{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.35)}
+.q-opt.wrong .opt-let{background:var(--red);color:var(--white)}
+.q-opt.wrong .opt-txt{color:var(--red-l);text-decoration:line-through}
+.q-opt.dimmed{opacity:.3}
+.q-fb{display:none;margin:0 20px 16px;border-radius:7px;padding:12px 15px;font-size:13.5px;line-height:1.65;animation:fadeUp .3s ease}
+.q-fb.show{display:block}
+.fb-badge{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-weight:700}
+.q-fb.cfb{background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.26);color:var(--green-l)}
+.q-fb.cfb .fb-badge{color:var(--green)}
+.q-fb.wfb{background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.26);color:var(--red-l)}
+.q-fb.wfb .fb-badge{color:var(--red)}
+.scoreboard{display:none;background:var(--panel);border:1px solid rgba(20,184,166,0.38);border-radius:10px;padding:32px;margin:24px 0;text-align:center;animation:fadeUp .4s ease}
+.scoreboard.show{display:block}
+.sb-title2{font-family:var(--head);font-size:17px;font-weight:700;color:var(--teal);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.sb-score{font-family:var(--head);font-size:62px;font-weight:800;line-height:1;margin-bottom:5px}
+.sb-of{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:16px}
+.sb-msg{font-size:14.5px;color:var(--text);margin-bottom:24px;font-style:italic}
+.sb-btn{background:var(--teal);color:#022c22;font-family:var(--head);font-size:15px;font-weight:700;padding:10px 28px;border-radius:6px;border:none;cursor:pointer;transition:background .2s}
+.sb-btn:hover{background:var(--teal-l);color:var(--dark)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+footer{background:var(--panel);border-top:2px solid var(--teal);margin-left:240px;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.f-left .f-course{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--teal);text-transform:uppercase}
+.f-left .f-mod{font-family:var(--head);font-size:18px;font-weight:700;color:var(--teal-l)}
+.f-right{text-align:right}
+.f-right .f-name{font-family:var(--head);font-size:18px;font-weight:700;color:var(--white)}
+.f-right .f-sub{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:var(--teal);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+<div class="sb-logo">
+<span class="sb-week">// CC7007 · Workshop 9</span>
+<span class="sb-title">AsyncRAT Analysis with ANY.RUN — Archive Delivery &amp; Config-Based C2</span>
+</div>
+<div class="nav-group">Before You Start</div>
+<a href="#understand">What Are We Actually Doing?</a>
+<a href="#vs-prev">How This Differs from Workshop 6</a>
+<a href="#scenario">The Case Briefing</a>
+<a href="#roadmap-sec">Investigation Roadmap</a>
+<a href="#setup">ANY.RUN Setup</a>
+<div class="nav-group">The Investigation</div>
+<a href="#step1">Step 1 — Open the Task &amp; Overview Panel</a>
+<a href="#step2">Step 2 — Read the Process Tree</a>
+<a class="flag-a" href="#finding1">⚑ Finding 1 — Archive Delivery Confirmed</a>
+<a href="#step3">Step 3 — Inspect the Payload Identity</a>
+<a class="flag-a" href="#finding2">⚑ Finding 2 — Fake Installer Masquerade</a>
+<a href="#step4">Step 4 — Review Behaviour &amp; Discovery Activity</a>
+<a class="flag-a" href="#finding3">⚑ Finding 3 — Host Profiling Observed</a>
+<a href="#step5">Step 5 — Separate Noise from Real C2 Evidence</a>
+<a class="flag-a" href="#finding4">⚑ Finding 4 — C2 Confirmed via Config, DNS & Connection</a>
+<a href="#step6">Step 6 — Confirm .NET Platform via Modules</a>
+<a href="#step7">Step 7 — Check Persistence Claims Carefully</a>
+<a class="flag-a" href="#finding5">⚑ Finding 5 — No Confirmed Autorun in This Run</a>
+<a href="#step8">Step 8 — MITRE ATT&CK Mapping & Timeline</a>
+<div class="nav-group">Finish Up</div>
+<a href="#recap">What Did We Learn?</a>
+<a href="#quiz">Knowledge Check</a>
+</nav>
+<main class="main">
+<div class="hero">
+<div class="hero-badge">CC7007 · Workshop 9</div>
+<h1>AsyncRAT in ANY.RUN<br/><em>Archive Delivery &amp; Config-Based C2</em></h1>
+<p class="tagline">An encrypted ZIP archive opened in WinRAR. A fake installer executed manually by the user. A .NET AsyncRAT payload that profiles the host and reveals its real command-and-control details through configuration extraction, malicious DNS resolution, and a direct connection on port <strong>2000</strong>. This workshop uses <strong>ANY.RUN's interactive sandbox</strong> to analyse the actual public task. You will read the Process Tree, inspect process details, review DNS and network noise, and use the malware configuration view together with the connections panel to derive the real C2 from the evidence.</p>
+<div class="chips">
+<div class="chip hi">Tool: <b>ANY.RUN Sandbox (2026)</b></div>
+<div class="chip warn">OS: <b>Windows 10 x64 VM</b></div>
+<div class="chip">Platform: <b>Browser — any.run</b></div>
+<div class="chip new">Sample: <b>ZIP → WinRAR → EXE</b></div>
+<div class="chip cyan">Skill: <b>Noise filtering · Config extraction · Host connection proof</b></div>
+</div>
+</div>
+
+<div class="divider" id="understand">🧠 WHAT ARE WE ACTUALLY DOING? — READ FIRST</div>
+<p>This AsyncRAT task is different from the fictional injection-heavy scenario often used in demos. Here, the malware arrives as an <strong>AES-encrypted ZIP archive</strong>, is opened through <strong>WinRAR</strong>, and the payload is <strong>executed directly by the user</strong> from the Desktop. The main analytical challenge is still <strong>separating real indicators from system noise</strong>, because much of the visible HTTP traffic belongs to legitimate Microsoft and DigiCert services. But the current ANY.RUN view gives you more than config alone: the real C2 is supported by <strong>malware configuration extraction</strong>, a <strong>DuckDNS domain</strong>, a <strong>malicious DNS resolution</strong>, and a <strong>direct connection from PID 7660 to 192.169.69.26:2000</strong>.</p>
+<div class="box warn">
+<div class="bx-label">⚠️ Important scope note</div>
+<p>This workshop now matches the <strong>actual ANY.RUN task as currently shown</strong>. Do not claim phishing, Outlook, script chains, injected processes, Startup-folder persistence, or hollowing unless the task itself shows them. But do not understate the network evidence either: page 2 now shows a <strong>malicious connection and malicious DNS entry</strong> for <code>donzola.duckdns.org</code>.</p>
+</div>
+
+<h2 class="sec">What new ANY.RUN skills does this add?</h2>
+<div class="grid-2">
+<div class="grid-card" style="border-left:3px solid var(--pink)">
+<div class="gc-cmd" style="color:var(--pink)">Archive-delivery tracing</div>
+<div class="gc-desc">Use the Process Tree, file activity, and WinRAR command line to prove that the payload came from an AES-encrypted ZIP archive and was executed manually after extraction.</div>
+</div>
+<div class="grid-card" style="border-left:3px solid var(--violet-l)">
+<div class="gc-cmd" style="color:var(--violet-l)">Noise filtering</div>
+<div class="gc-desc">Distinguish Windows telemetry, DigiCert OCSP, Microsoft update traffic, and login endpoints from actual malware infrastructure. You need both restraint and precision here.</div>
+</div>
+<div class="grid-card" style="border-left:3px solid var(--amber)">
+<div class="gc-cmd" style="color:var(--amber)">Config + connection correlation</div>
+<div class="gc-desc">Use MalConf to extract the AsyncRAT C2 domain, port, mutex, version, and install folder, then validate that against DNS and the connections panel.</div>
+</div>
+<div class="grid-card" style="border-left:3px solid var(--teal)">
+<div class="gc-cmd">Contextual .NET confirmation</div>
+<div class="gc-desc">Use process modules such as <code>mscoree.dll</code> to confirm the payload is managed code, supporting AsyncRAT attribution without inventing injection evidence.</div>
+</div>
+</div>
+
+<div id="vs-prev" style="margin-top:28px"></div>
+<h2 class="sec">How this differs from Workshop 6 — Amadey</h2>
+<table class="diff-table">
+<thead>
+<tr><th>Dimension</th><th>Workshop 6 — Amadey</th><th>Workshop 9 — AsyncRAT (This Task)</th></tr>
+</thead>
+<tbody>
+<tr><td>Delivery</td><td>Direct binary execution in the sandbox</td><td class="new-col">AES-encrypted ZIP archive opened via WinRAR, then extracted and executed manually</td></tr>
+<tr><td>Where malware runs</td><td>Its own process</td><td class="hi">Its own process as well — no confirmed injection target in this task</td></tr>
+<tr><td>C2 evidence</td><td>Visible HTTP network correlation</td><td class="hi">Real C2 is confirmed through config extraction, malicious DNS, and a direct connection to <code>donzola.duckdns.org:2000</code></td></tr>
+<tr><td>Main challenge</td><td>Spotting the malicious process</td><td class="hi">Separating legitimate Windows traffic from malware-relevant indicators without missing the real connection evidence</td></tr>
+<tr><td>ANY.RUN panel used</td><td>Process Tree, Network → HTTP Requests, IOC tab</td><td class="new-col">Process Tree, file activity, process details, Connections, DNS, Threats, MalConf, and registry activity</td></tr>
+<tr><td>Malware platform</td><td>Native Win32 binary</td><td class="hi">.NET payload supported by module evidence such as <code>mscoree.dll</code></td></tr>
+<tr><td>Persistence</td><td>Observed persistence artefacts</td><td class="lo">AutoRun is false in extracted config and no strong persistence artefact is confirmed in this run</td></tr>
+<tr><td>ATT&CK emphasis</td><td>Execution and networking</td><td class="hi">User execution, registry querying, system information discovery, dynamic DNS, and config-backed C2 confirmation</td></tr>
+</tbody>
+</table>
+<div class="box warn">
+<div class="bx-label">⚠️ Do not force the sample into the wrong story</div>
+<p>This task does not show <code>GoogleUpdate.exe</code>, <code>aspnet_compiler.exe</code>, Outlook, VBScript, or injected-process behaviour. The correct story is ZIP delivery, fake installer execution, host profiling, and C2 confirmation via config, DNS, and the live connection shown in the current ANY.RUN view.</p>
+</div>
+
+<div class="divider pink-d" id="scenario">📁 THE CASE — READ BEFORE ANYTHING ELSE</div>
+<div class="scenario-card">
+<div class="sc-ref">// Case Reference: ASYNCRAT-ANYRUN-09 · Task: b7ff470d-5740-43b6-80ae-376d93c54b4d · OS: Windows 10 x64</div>
+<div class="sc-body">
+<p>A suspicious archive named <code>1f3c7379dd29298aa24b3aa3a3113ed3051f4515bc3c016893e285d311a74202.zip</code> was detonated in ANY.RUN. The archive is AES-encrypted and contains a single executable with a long hash-like name. The user opens the archive through WinRAR, extracts the payload to the Desktop, and executes it manually.</p>
+<p>ANY.RUN detects the sample as <strong>AsyncRAT</strong> via both YARA and mutex artefacts. The payload presents itself as <em>Maxthon Installer</em>, but its filename, context, and behaviour make clear that it is not a legitimate installer. The process then performs environment discovery, including reading the machine GUID, computer name, and supported languages.</p>
+<p>At first glance, the HTTP panel is noisy: Microsoft update, telemetry, DigiCert OCSP, and login.live.com requests dominate the visible traffic. Those are largely <strong>whitelisted background communications</strong>. The malware-specific evidence comes from three aligned places: the <strong>MalConf</strong> panel, the <strong>DNS/Threats</strong> views, and the <strong>Connections</strong> panel, which shows PID <code>7660</code> connecting to <code>donzola.duckdns.org</code> at <code>192.169.69.26:2000</code> with malicious reputation.</p>
+<p>Your task: reconstruct the archive-based execution chain, identify the fake installer payload, extract the real infrastructure, document what the malware actually did, and avoid making claims that the sample does not support.</p>
+</div>
+</div>
+
+<div class="box tip">
+<div class="bx-label">💡 Reading this task as an analyst</div>
+<p><strong>Archive delivery</strong> → WinRAR is not just background noise here. It is the first important process because it shows how the executable entered the user context.</p>
+<p><strong>Process identity</strong> → The executable claims to be <em>Maxthon Installer</em>, but its random filename and execution context contradict that identity. This is weak masquerading rather than stealthy injection.</p>
+<p><strong>Network interpretation</strong> → The visible HTTP requests are mostly legitimate operating-system noise. But unlike the older draft of this workshop, the current task also shows <strong>actual malicious connection evidence</strong> in the Connections and DNS views. Use that.</p>
+</div>
+
+<div class="divider purple-d" id="roadmap-sec">🗺 INVESTIGATION ROADMAP</div>
+<div class="roadmap" style="margin-top:20px">
+<div class="rm-item"><div class="rm-step">Step 1</div><div><div class="rm-title">Open the task & read the Overview panel</div><div class="rm-desc">Confirm the sample, verdict, tags, timestamp, and archive metadata. These anchor the report.</div></div></div>
+<div class="rm-item"><div class="rm-step">Step 2</div><div><div class="rm-title">Trace the archive-delivery chain</div><div class="rm-desc">Follow the path from WinRAR to the extracted Desktop executable and the child process it launches.</div></div></div>
+<div class="rm-item rm-flag"><div class="rm-step">Finding 1</div><div><div class="rm-title">Archive delivery confirmed</div><div class="rm-desc">The payload arrived through an AES-encrypted ZIP and was executed manually after extraction.</div></div></div>
+<div class="rm-item"><div class="rm-step">Step 3</div><div><div class="rm-title">Inspect the payload identity</div><div class="rm-desc">Use process details to compare the filename, claimed description, company name, and execution path.</div></div></div>
+<div class="rm-item rm-flag"><div class="rm-step">Finding 2</div><div><div class="rm-title">Fake installer masquerade</div><div class="rm-desc">The payload presents as Maxthon Installer, but the filename and context are inconsistent with legitimate software delivery.</div></div></div>
+<div class="rm-item"><div class="rm-step">Step 4</div><div><div class="rm-title">Review behaviour and discovery activity</div><div class="rm-desc">Use behaviour signatures and process details to identify machine-GUID, hostname, and language checks.</div></div></div>
+<div class="rm-item rm-flag"><div class="rm-step">Finding 3</div><div><div class="rm-title">Host profiling observed</div><div class="rm-desc">The malware performs registry queries and system information discovery before later-stage network activity.</div></div></div>
+<div class="rm-item"><div class="rm-step">Step 5</div><div><div class="rm-title">Separate noise from real C2 evidence</div><div class="rm-desc">Ignore whitelisted Microsoft/DigiCert traffic and pivot to MalConf, DNS, Threats, and Connections for actual infrastructure.</div></div></div>
+<div class="rm-item rm-flag"><div class="rm-step">Finding 4</div><div><div class="rm-title">C2 confirmed via config, DNS, and live connection</div><div class="rm-desc">Extract the domain and port from MalConf, then validate them against the malicious DNS and connection record for PID 7660.</div></div></div>
+<div class="rm-item"><div class="rm-step">Step 6</div><div><div class="rm-title">Confirm .NET platform</div><div class="rm-desc">Use modules such as mscoree.dll to support the conclusion that the payload is managed code.</div></div></div>
+<div class="rm-item"><div class="rm-step">Step 7</div><div><div class="rm-title">Check persistence claims carefully</div><div class="rm-desc">Verify whether autorun is actually supported by this run rather than copying generic AsyncRAT claims.</div></div></div>
+<div class="rm-item rm-flag"><div class="rm-step">Finding 5</div><div><div class="rm-title">No confirmed autorun in this run</div><div class="rm-desc">The extracted config shows AutoRun=false and the captured activity does not justify a stronger persistence claim.</div></div></div>
+<div class="rm-item"><div class="rm-step">Step 8</div><div><div class="rm-title">Read ATT&CK mappings and build the timeline</div><div class="rm-desc">Use the observed actions, not generic family lore, to assemble the final narrative and ATT&CK mapping.</div></div></div>
+</div>
+
+<div class="divider cyan-d" id="setup">💾 ANY.RUN SETUP — BEFORE YOU START</div>
+<p>You will be working with the actual public ANY.RUN task for this workshop: <code>b7ff470d-5740-43b6-80ae-376d93c54b4d</code>. The task already contains a full detonation in a Windows 10 x64 virtual machine.</p>
+<div class="setup-step">
+<div class="setup-step-head">
+<div class="sn amber-n">Step D1</div>
+<div class="st-desc">Open the shared analysis task in your browser</div>
+</div>
+<div class="setup-step-body">
+<div class="screen-out">
+<div class="so-top"><div class="lbl">Action</div><div class="tag ui">UI</div></div>
+<pre><span class="hl">1.</span> Open the task link shared for the workshop.
+<span class="hl">2.</span> Public viewing is sufficient for this exercise.
+<span class="hl">3.</span> The task page loads process, network, files, registry, IOC, MalConf, and ATT&CK views.</pre>
+</div>
+</div>
+</div>
+
+<div class="setup-step">
+<div class="setup-step-head">
+<div class="sn">Step D2</div>
+<div class="st-desc">Familiarise yourself with the ANY.RUN interface layout (2026 version)</div>
+</div>
+<div class="setup-step-body">
+<div class="screen-out">
+<div class="so-top"><div class="lbl">ANY.RUN task page — panel layout</div><div class="tag ui">UI</div></div>
+<pre><span class="hl">LEFT PANEL</span>       VM Stream (live or recorded)
+
+<span class="hl-c">TOP RIGHT</span>        Verdict badge · Threat name · File info · Timestamp
+
+<span class="hl-a">CENTRE TABS</span>      Process Tree │ Graph │ File Activity │ Registry Activity
+
+<span class="hl-p">NETWORK TABS</span>     HTTP Requests │ Connections │ DNS Requests │ Threats
+
+<span class="hl-g">BOTTOM AREA</span>      IOC │ MalConf │ ATT&CK │ Export
+
+<span class="hl-t">PER-PROCESS</span>      Click any process → process details → More info</pre>
+</div>
+</div>
+</div>
+
+<div class="divider green-d">🔍 THE INVESTIGATION — STEP BY STEP</div>
+<p>Every step now follows the same structure: <strong>what to look for first</strong>, <strong>where to click in ANY.RUN</strong>, and only then the <strong>expected answer</strong>. This lets students work the task independently before checking the solution.</p>
+<p>Record exact filenames, hashes, domains, ports, process IDs, and reputation labels. Avoid inventing details that are not present in the task.</p>
+<div class="box new-skill">
+<div class="bx-label">★ The real pivots in this workshop</div>
+<p><strong>MalConf</strong> — this is where the decisive AsyncRAT infrastructure appears first: C2 domain, port, version, mutex, install folder, and keys.</p>
+<p><strong>Connections + DNS</strong> — the current task also shows the payload process connecting to <code>donzola.duckdns.org:2000</code> and resolving it as <code>192.169.69.26</code> with malicious reputation.</p>
+</div>
+
+<div class="divider teal-d" id="step1" style="margin-top:28px">STEP 1 — OPEN THE TASK & READ THE OVERVIEW</div>
+<p>Always start here. The overview gives you the verdict, timestamp, archive type, hashes, family identification, and tags.</p>
+<div class="step-task">
+<div class="st-label">What students should look for before checking the answer</div>
+<ul>
+<li>Open the <strong>General / Overview</strong> area first, not the network tabs.</li>
+<li>Write down the <strong>verdict</strong>, <strong>threat/family name</strong>, <strong>analysis date</strong>, <strong>OS</strong>, and <strong>tags</strong>.</li>
+<li>Check whether the submitted object is an <strong>EXE, script, document, or archive</strong>.</li>
+<li>Note the archive characteristics such as <strong>MIME type</strong> and whether encryption is mentioned.</li>
+</ul>
+</div>
+<h3 class="sub">Expected answer</h3>
+<div class="screen-out">
+<div class="so-top"><div class="lbl">Expected overview panel content</div><div class="tag ui">UI</div></div>
+<pre>Verdict:         <span class="hl-r">MALICIOUS ACTIVITY</span>
+Threats:         <span class="hl-r">AsyncRAT</span> / Remote Access Trojan
+Analysis date:   <span class="hl-a">17 April 2026, 02:13:19</span>
+OS:              <span class="hl">Windows 10 Professional, 64 bit</span>
+File name:       <span class="hl-p">1f3c...a74202.zip</span>
+MIME:            <span class="hl-c">application/zip</span>
+Archive type:    AES encrypted ZIP archive
+Tags:            <span class="hl-t">auto · asyncrat · arch-exec · rat</span></pre>
+</div>
+
+<div class="divider teal-d" id="step2" style="margin-top:28px">STEP 2 — MAP THE ARCHIVE-DELIVERY CHAIN</div>
+<div class="step-task">
+<div class="st-label">What students should look for before checking the answer</div>
+<ul>
+<li>Open <strong>Process Tree</strong> and <strong>File Activity</strong> together.</li>
+<li>Find the first process that handles the submitted archive.</li>
+<li>Check whether the malware was run <strong>directly</strong> or <strong>extracted first</strong>.</li>
+<li>Look for the path of the dropped executable and note its <strong>Desktop</strong> location.</li>
+<li>Record the relevant <strong>PIDs</strong> and decide whether the execution was <strong>manual</strong> or automated.</li>
+</ul>
+</div>
+<div class="goal-box">
+<div class="gb-label">What we are trying to find out</div>
+<ul>
+<li>How the sample was opened and by which process</li>
+<li>Where the payload executable was dropped</li>
+<li>Which executable PIDs belong to the AsyncRAT payload</li>
+<li>Whether the user manually executed the file</li>
+</ul>
+</div>
+<h3 class="sub">Expected answer</h3>
+<div class="screen-out">
+<div class="so-top"><div class="lbl">Process Tree / Graph — you should expect a chain like this</div><div class="tag proc">PROCESS TREE</div></div>
+<pre>explorer.exe
+├─ WinRAR.exe (PID 4692)
+│  CMD: "C:\Program Files\WinRAR\WinRAR.exe" C:\Users\admin\AppData\Local\Temp\1f3c...a74202.zip
+└─ 1f3c7379dd29298aa24b3aa3a3113ed3051f4515bc3c016893e285d311a74202.exe (PID 7660)
+   └─ 1f3c7379dd29298aa24b3aa3a3113ed3051f4515bc3c016893e285d311a74202.exe (PID 7760)
+
+Dropped file:
+C:\Users\admin\Desktop\1f3c7379dd29298aa24b3aa3a3113ed3051f4515bc3c016893e285d311a74202.exe</pre>
+</div>
+<div class="flag-box" id="finding1">
+<div class="fb-label">⚑ Finding 1 — Archive Delivery Confirmed</div>
+<div class="fb-val">
+Archive: 1f3c7379dd29298aa24b3aa3a3113ed3051f4515bc3c016893e285d311a74202.zip<br/>
+Extractor: WinRAR.exe (PID 4692)<br/>
+Dropped payload: C:\Users\admin\Desktop\1f3c7379dd29298aa24b3aa3a3113ed3051f4515bc3c016893e285d311a74202.exe<br/>
+Executed payload PIDs: 7660 and 7760<br/>
+Evidence: Process graph + file activity + behaviour signatures
+</div>
+<div class="fb-why">
+<strong>MITRE ATT&CK: T1204.002 — User Execution: Malicious File.</strong> This task shows archive-based delivery followed by manual execution. Start from the archive, then trace extraction, then confirm user execution from the behaviour evidence.
+</div>
+</div>
+
+<div class="divider teal-d" id="step3" style="margin-top:28px">STEP 3 — INSPECT THE PAYLOAD IDENTITY</div>
+<div class="step-task">
+<div class="st-label">What students should look for before checking the answer</div>
+<ul>
+<li>Click the payload process and inspect <strong>process details</strong>.</li>
+<li>Compare the <strong>filename</strong> with the claimed <strong>Description</strong>, <strong>Company</strong>, and <strong>Version</strong>.</li>
+<li>Ask whether that claimed identity fits the delivery context.</li>
+<li>Check whether ANY.RUN assigns family detections like <strong>YARA</strong> or <strong>MUTEX</strong> to the same process.</li>
+</ul>
+</div>
+<h3 class="sub">Expected answer</h3>
+<div class="screen-out">
+<div class="so-top"><div class="lbl">Process details — you should expect identity clues like these</div><div class="tag panel">DETAILS</div></div>
+<pre>PID:            7660 / 7760
+Path:           C:\Users\admin\Desktop\1f3c7379dd29298aa24b3aa3a3113ed3051f4515bc3c016893e285d311a74202.exe
+Description:    Maxthon Installer
+Company:        Maxthon Ltd.
+Version:        7.0.2.2001
+Indicators:     ASYNCRAT detected (YARA)
+                ASYNCRAT detected (MUTEX)</pre>
+</div>
+<div class="flag-box" id="finding2">
+<div class="fb-label">⚑ Finding 2 — Fake Installer Masquerade</div>
+<div class="fb-val">
+Claimed identity: Maxthon Installer / Maxthon Ltd.<br/>
+Actual filename: random hash-like executable name on Desktop<br/>
+Family detections: AsyncRAT via YARA and mutex<br/>
+Evidence: Process details + behaviour activities + MalConf
+</div>
+<div class="fb-why">
+<strong>MITRE ATT&CK: T1036 — Masquerading.</strong> The payload attempts to borrow legitimacy from a known software brand, but the filename, delivery path, and execution context do not fit a genuine installer workflow.
+</div>
+</div>
+
+<div class="divider teal-d" id="step4" style="margin-top:28px">STEP 4 — REVIEW BEHAVIOUR & DISCOVERY ACTIVITY</div>
+<div class="step-task">
+<div class="st-label">What students should look for before checking the answer</div>
+<ul>
+<li>Open the <strong>Behaviour</strong> indicators and the <strong>ATT&amp;CK</strong> view.</li>
+<li>Look for registry reads, host information checks, and language or locale checks.</li>
+<li>Separate <strong>host profiling</strong> from <strong>persistence</strong> or <strong>networking</strong>.</li>
+<li>Write down the exact discovery actions the malware performs before concluding what stage of execution you are looking at.</li>
+</ul>
+</div>
+<div class="concept">
+<div class="concept-header"><div class="ch-icon">🧭</div><div><div class="ch-title">What the malware does before anything else matters</div><div class="ch-sub">Host profiling appears before the connection evidence becomes useful</div></div></div>
+<div class="concept-body">
+<p>In this task, the payload reads the machine GUID, computer name, and supported languages. That is typical RAT staging behaviour: identify the host, profile the environment, and prepare for later communication. These actions matter even if the HTTP list is dominated by benign operating-system traffic.</p>
+</div>
+</div>
+<h3 class="sub">Expected answer</h3>
+<div class="screen-out">
+<div class="so-top"><div class="lbl">Behaviour signatures — expected evidence</div><div class="tag mitre">ATT&CK</div></div>
+<pre>T1012  Query Registry
+  - Reads the machine GUID from the registry
+  - Reads the computer name
+  - Checks supported languages
+
+T1082  System Information Discovery
+  - Reads the machine GUID
+  - Reads the computer name
+  - Checks supported languages</pre>
+</div>
+<div class="flag-box" id="finding3">
+<div class="fb-label">⚑ Finding 3 — Host Profiling Observed</div>
+<div class="fb-val">
+Reads machine GUID from registry<br/>
+Reads computer name<br/>
+Checks supported languages<br/>
+Evidence: Behaviour activities + process details + ATT&CK matrix
+</div>
+<div class="fb-why">
+<strong>MITRE ATT&CK: T1012 and T1082.</strong> These actions indicate environment profiling and are fully supported by the task. They are stronger than inventing process injection that the evidence does not show.
+</div>
+</div>
+
+<div class="divider teal-d" id="step5" style="margin-top:28px">STEP 5 — SEPARATE NOISE FROM REAL C2 EVIDENCE</div>
+<div class="step-task">
+<div class="st-label">What students should look for before checking the answer</div>
+<ul>
+<li>Start with the <strong>HTTP Requests</strong> tab and identify entries marked <strong>whitelisted</strong>.</li>
+<li>Then pivot to <strong>Connections</strong>, <strong>DNS Requests</strong>, <strong>Threats</strong>, and <strong>MalConf</strong>.</li>
+<li>Check whether the malware PID itself owns a connection, not just system processes like <code>svchost.exe</code>.</li>
+<li>Look for overlap between the <strong>domain in MalConf</strong>, the <strong>domain in DNS</strong>, and the <strong>domain/IP in Connections</strong>.</li>
+<li>Do not write the answer until you can explain why Microsoft and DigiCert traffic is noise and why the DuckDNS entry is different.</li>
+</ul>
+</div>
+<div class="concept">
+<div class="concept-header"><div class="ch-icon">🔎</div><div><div class="ch-title">Why the network pane can still mislead you</div><div class="ch-sub">The HTTP list is noisy, but the connections and DNS views now show the real answer</div></div></div>
+<div class="concept-body">
+<p>The visible HTTP request list is dominated by legitimate services: <code>settings-win.data.microsoft.com</code>, <code>login.live.com</code>, <code>crl.microsoft.com</code>, <code>ocsp.digicert.com</code>, and Windows update endpoints. Those are mostly whitelisted and belong to the guest OS. The correct workflow is: first filter out that noise, then pivot to <strong>MalConf</strong>, <strong>Connections</strong>, <strong>DNS</strong>, and <strong>Threats</strong> for malware-attributable infrastructure.</p>
+</div>
+</div>
+
+<h3 class="sub">Expected answer</h3>
+<div class="screen-out">
+<div class="so-top"><div class="lbl">Malware configuration — extracted infrastructure</div><div class="tag ioc">MALCONF</div></div>
+<pre>AsyncRat
+Process:       PID 7660
+C2 domain:     <span class="hl-r">donzola.duckdns.org</span>
+Port:          <span class="hl-r">2000</span>
+Version:       0.5.7B
+Mutex:         AsyncMutex_iuykt5yr5ur58n8tnur8herjncr8tk
+InstallFolder: %AppData%
+AutoRun:       false</pre>
+</div>
+
+<div class="screen-out">
+<div class="so-top"><div class="lbl">Connections — page 2 evidence you must capture</div><div class="tag net">CONNECTIONS</div></div>
+<pre>PID:           <span class="hl-r">7660</span>
+Process:       1f3c7379dd29298aa24b3aa3a3113ed3051f4515bc3c016893e285d311a74202.exe
+Remote:        <span class="hl-r">192.169.69.26:2000</span>
+Domain:        <span class="hl-r">donzola.duckdns.org</span>
+Reputation:    <span class="hl-r">malicious</span>
+ASN:           SERVERSTADIUM
+CN:            US</pre>
+</div>
+
+<div class="screen-out">
+<div class="so-top"><div class="lbl">DNS / Threats — supporting telemetry</div><div class="tag net">DNS / THREATS</div></div>
+<pre>DNS:
+  donzola.duckdns.org      → <span class="hl-r">192.169.69.26</span>     <span class="hl-r">malicious</span>
+  self.events.data.microsoft.com → whitelisted
+
+Threats:
+  ET DYN_DNS DYNAMIC_DNS Query to a *.duckdns.org Domain
+  ET DYN_DNS DYNAMIC_DNS Query to *.duckdns. Domain</pre>
+</div>
+
+<div class="screen-out">
+<div class="so-top"><div class="lbl">HTTP requests — examples of background noise</div><div class="tag net">HTTP</div></div>
+<pre>settings-win.data.microsoft.com   → whitelisted
+login.live.com                    → whitelisted
+ocsp.digicert.com                 → whitelisted
+crl.microsoft.com                 → whitelisted
+slscr.update.microsoft.com        → whitelisted
+fe3cr.delivery.mp.microsoft.com   → whitelisted</pre>
+</div>
+
+<div class="look-for">
+<div class="lf-head">What to look for</div>
+<ul>
+<li>Identify which network entries are explicitly marked <strong>whitelisted</strong> and belong to common Microsoft or certificate services.</li>
+<li>Do <strong>not</strong> stop at the noisy HTTP list. Open <strong>Connections</strong> and verify whether the malware PID itself owns a connection.</li>
+<li>Check whether the domain from <strong>MalConf</strong> matches the domain in <strong>Connections</strong> and <strong>DNS</strong>.</li>
+<li>Use <strong>Threats</strong> to support the dynamic-DNS interpretation, but treat the direct connection and malicious DNS as the stronger evidence.</li>
+</ul>
+</div>
+
+<div class="flag-box" id="finding4">
+<div class="fb-label">⚑ Finding 4 — C2 Confirmed via Config, DNS & Connection</div>
+<div class="fb-val">
+C2 domain: donzola.duckdns.org<br/>
+Resolved IP: 192.169.69.26<br/>
+Port: 2000<br/>
+Version: 0.5.7B<br/>
+Mutex: AsyncMutex_iuykt5yr5ur58n8tnur8herjncr8tk<br/>
+Evidence: ANY.RUN MalConf + malicious DNS entry + connection from PID 7660
+</div>
+<div class="fb-why">
+<strong>MITRE ATT&CK:</strong> this is the strongest infrastructure finding in the current task. The HTTP pane is noisy, but the config, DNS, and connection views converge on the same DuckDNS endpoint. That is the defensible C2 conclusion.
+</div>
+</div>
+
+<div class="divider pink-d" id="step6" style="margin-top:28px">STEP 6 — CONFIRM .NET PLATFORM VIA MODULES</div>
+<div class="step-task">
+<div class="st-label">What students should look for before checking the answer</div>
+<ul>
+<li>Open the payload process and inspect the <strong>Modules</strong> list.</li>
+<li>Look for <code>mscoree.dll</code> or other CLR-related runtime components.</li>
+<li>Use this as <strong>supporting evidence</strong> for platform identification, not as your only malware indicator.</li>
+<li>Relate the module evidence back to the earlier AsyncRAT detections.</li>
+</ul>
+</div>
+<h3 class="sub">Expected answer</h3>
+<div class="screen-out">
+<div class="so-top"><div class="lbl">Process modules — runtime support</div><div class="tag panel">MODULES</div></div>
+<pre>Payload modules include:
+  c:\windows\syswow64\mscoree.dll
+  c:\windows\syswow64\kernel32.dll
+  c:\windows\syswow64\kernelbase.dll
+
+<span class="hl-g">→ Managed-code support present. This is consistent with a .NET payload.</span></pre>
+</div>
+<div class="box tip">
+<div class="bx-label">💡 Interpret this properly</div>
+<p>Treat module evidence as contextual support rather than a standalone red flag. It helps show that the executable is consistent with a managed .NET AsyncRAT payload when combined with YARA, mutex, and MalConf results.</p>
+</div>
+
+<div class="divider teal-d" id="step7" style="margin-top:28px">STEP 7 — CHECK PERSISTENCE CLAIMS CAREFULLY</div>
+<div class="step-task">
+<div class="st-label">What students should look for before checking the answer</div>
+<ul>
+<li>Open <strong>MalConf</strong> first and note the <strong>AutoRun</strong> setting.</li>
+<li>Then inspect <strong>Registry Activity</strong> and ask whether the recorded writes actually show persistence.</li>
+<li>Separate <strong>WinRAR history/UI artefacts</strong> from genuine autorun or Run-key behaviour.</li>
+<li>Do not claim persistence just because the malware family is capable of it.</li>
+</ul>
+</div>
+<h3 class="sub">Expected answer</h3>
+<div class="screen-out">
+<div class="so-top"><div class="lbl">After reviewing config and registry evidence, you should expect a conclusion like this</div><div class="tag panel">REGISTRY / MALCONF</div></div>
+<pre>MalConf:
+  AutoRun: false
+  InstallFolder: %AppData%
+
+Registry activity shown:
+  Mostly WinRAR history and UI artefacts
+  No strong autorun proof captured in this run</pre>
+</div>
+<div class="flag-box" id="finding5">
+<div class="fb-label">⚑ Finding 5 — No Confirmed Autorun in This Run</div>
+<div class="fb-val">
+AutoRun in extracted config: false<br/>
+InstallFolder: %AppData%<br/>
+Captured registry writes: mainly WinRAR history values<br/>
+Evidence: MalConf + registry activity excerpt
+</div>
+<div class="fb-why">
+<strong>Analytical discipline matters.</strong> AsyncRAT often supports persistence, but this task does not justify claiming that persistence was successfully established during the captured run. Report what is present, not what is common in the family.
+</div>
+</div>
+
+<div class="divider amber-d" id="step8" style="margin-top:28px">STEP 8 — MITRE ATT&CK TAB & BUILD THE TIMELINE</div>
+<div class="step-task">
+<div class="st-label">What students should look for before checking the answer</div>
+<ul>
+<li>Build the sequence from <strong>archive open → extraction → execution → discovery → C2 evidence</strong>.</li>
+<li>Map only the actions that are actually visible in the task.</li>
+<li>Use the ATT&amp;CK tab as support, but make sure your timeline is grounded in <strong>observed evidence</strong>.</li>
+<li>Mark your confidence level for each event before comparing with the expected answer.</li>
+</ul>
+</div>
+<h3 class="sub">Expected answer</h3>
+<table class="tl-table">
+<thead>
+<tr>
+<th>Timestamp / Order</th>
+<th>Event</th>
+<th>ANY.RUN Evidence Source</th>
+<th>MITRE ATT&CK</th>
+<th>Confidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T-0</td>
+<td>User opens AES-encrypted ZIP archive in WinRAR</td>
+<td>General info + WinRAR command line</td>
+<td class="mitre">T1204.002</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>Executable is dropped to the Desktop by WinRAR</td>
+<td>File activity</td>
+<td class="mitre">—</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>User manually executes the dropped EXE</td>
+<td>Behaviour activities + process details</td>
+<td class="mitre">T1204.002</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>Payload presents as “Maxthon Installer” despite random filename and suspicious context</td>
+<td>Process details</td>
+<td class="mitre">T1036</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>AsyncRAT confirmed through YARA and mutex artefacts</td>
+<td>Behaviour activities + process indicators</td>
+<td class="mitre">— Attribution support</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>Payload reads machine GUID, hostname, and supported languages</td>
+<td>Behaviour activities + ATT&CK matrix</td>
+<td class="mitre">T1012 + T1082</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>C2 infrastructure extracted from config: donzola.duckdns.org:2000</td>
+<td>MalConf</td>
+<td class="mitre">T1071 + T1568</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>PID 7660 connects to 192.169.69.26:2000 using donzola.duckdns.org</td>
+<td>Connections</td>
+<td class="mitre">T1071</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>Malicious DNS resolution and DuckDNS-related telemetry support dynamic-DNS usage</td>
+<td>DNS + Threats</td>
+<td class="mitre">T1568</td>
+<td class="conf-hi">High</td>
+</tr>
+<tr>
+<td>[timestamp]</td>
+<td>No confirmed autorun established during the captured run</td>
+<td>MalConf + registry activity</td>
+<td class="mitre">—</td>
+<td class="conf-hi">High</td>
+</tr>
+</tbody>
+</table>
+
+<div class="divider" id="recap">📋 WHAT DID THIS INVESTIGATION DEMONSTRATE?</div>
+<div class="recap-grid">
+<div class="recap-card" style="background:var(--card);border:1px solid rgba(236,72,153,0.22);border-left:4px solid var(--pink)">
+<div class="rc-title" style="color:var(--pink-l)">1 — Not every AsyncRAT sample is an injection case</div>
+<div class="rc-body">This task is a direct-execution case, not a hollowed-process case. Good analysis starts with what the evidence actually shows, not with what a family is capable of in general.</div>
+</div>
+<div class="recap-card" style="background:var(--card);border:1px solid rgba(20,184,166,0.22);border-left:4px solid var(--teal)">
+<div class="rc-title" style="color:var(--teal-l)">2 — Archive delivery matters</div>
+<div class="rc-body">The path from encrypted ZIP → WinRAR → Desktop executable → manual launch is itself a meaningful execution story and should be documented clearly in the timeline.</div>
+</div>
+<div class="recap-card" style="background:var(--card);border:1px solid rgba(124,58,237,0.22);border-left:4px solid var(--violet)">
+<div class="rc-title" style="color:var(--violet-l)">3 — Most visible HTTP traffic here is still noise</div>
+<div class="rc-body">Windows telemetry, Microsoft update, login.live.com, CRL, and OCSP traffic dominate the HTTP list. The analyst’s job is to filter that out without missing the separate malicious connection evidence.</div>
+</div>
+<div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,0.22);border-left:4px solid var(--amber)">
+<div class="rc-title" style="color:var(--amber-l)">4 — MalConf is a pivot, not the whole story</div>
+<div class="rc-body">In the current task version, the real AsyncRAT infrastructure is not just recovered from configuration extraction. It is also corroborated by a malicious DNS record and a live connection from the payload process to <code>donzola.duckdns.org:2000</code>.</div>
+</div>
+<div class="recap-card" style="background:var(--card);border:1px solid rgba(16,185,129,0.22);border-left:4px solid var(--green)">
+<div class="rc-title" style="color:var(--green-l)">5 — Absence of evidence is still evidence</div>
+<div class="rc-body">Compare the extracted config with the captured registry/file activity before deciding whether persistence is actually supported in this run. Here, it is not.</div>
+</div>
+</div>
+
+<div class="divider amber-d" id="quiz">📝 KNOWLEDGE CHECK</div>
+<p style="color:var(--muted);font-size:14px;font-style:italic;margin-bottom:20px">Five questions covering archive delivery, noise filtering, config-and-connection C2 confirmation, and the difference between family capability and sample evidence.</p>
+<div class="quiz-progress">
+<span class="qp-lbl">Progress</span>
+<div class="qp-dot" id="dot-0"></div>
+<div class="qp-dot" id="dot-1"></div>
+<div class="qp-dot" id="dot-2"></div>
+<div class="qp-dot" id="dot-3"></div>
+<div class="qp-dot" id="dot-4"></div>
+</div>
+
+<div class="qcard" id="qc-0">
+<div class="qcard-head"><div class="q-tag">Question 1</div><div class="q-text">The process chain in this task shows <code>WinRAR.exe → 1f3c...exe → 1f3c...exe</code>. What is the strongest supported conclusion?</div></div>
+<div class="q-opts" id="qo-0">
+<button class="q-opt" onclick="ans(0,0,false)"><span class="opt-let">A</span><span class="opt-txt">The sample came through Outlook and ran from a script.</span></button>
+<button class="q-opt" onclick="ans(0,1,true)"><span class="opt-let">B</span><span class="opt-txt">The payload was extracted from the ZIP and manually launched.</span></button>
+<button class="q-opt" onclick="ans(0,2,false)"><span class="opt-let">C</span><span class="opt-txt">The sample was injected into svchost.exe immediately after launch.</span></button>
+<button class="q-opt" onclick="ans(0,3,false)"><span class="opt-let">D</span><span class="opt-txt">The archive contained only scripts, not an executable.</span></button>
+</div>
+<div class="q-fb" id="qf-0"></div>
+</div>
+
+<div class="qcard" id="qc-1">
+<div class="qcard-head"><div class="q-tag">Question 2</div><div class="q-text">Why is it wrong to treat the visible <code>login.live.com</code>, Microsoft update, DigiCert, and telemetry traffic as the malware’s confirmed C2 in this task?</div></div>
+<div class="q-opts" id="qo-1">
+<button class="q-opt" onclick="ans(1,0,false)"><span class="opt-let">A</span><span class="opt-txt">Because HTTPS traffic can never be malware-related.</span></button>
+<button class="q-opt" onclick="ans(1,1,true)"><span class="opt-let">B</span><span class="opt-txt">Because most of that traffic is whitelisted background activity, while the stronger C2 evidence comes from MalConf, DNS, and the payload connection.</span></button>
+<button class="q-opt" onclick="ans(1,2,false)"><span class="opt-let">C</span><span class="opt-txt">Because ANY.RUN hides the real C2 and shows only fake traffic.</span></button>
+<button class="q-opt" onclick="ans(1,3,false)"><span class="opt-let">D</span><span class="opt-txt">Because Microsoft destinations are always unrelated in malware runs.</span></button>
+</div>
+<div class="q-fb" id="qf-1"></div>
+</div>
+
+<div class="qcard" id="qc-2">
+<div class="qcard-head"><div class="q-tag">Question 3</div><div class="q-text">What is the most defensible statement about C2 infrastructure in this task?</div></div>
+<div class="q-opts" id="qo-2">
+<button class="q-opt" onclick="ans(2,0,false)"><span class="opt-let">A</span><span class="opt-txt">The C2 is definitely login.live.com because that is the most repeated request.</span></button>
+<button class="q-opt" onclick="ans(2,1,false)"><span class="opt-let">B</span><span class="opt-txt">There is no usable C2 evidence because the HTTP list is noisy.</span></button>
+<button class="q-opt" onclick="ans(2,2,true)"><span class="opt-let">C</span><span class="opt-txt">The strongest C2 indicator is the DuckDNS host and port confirmed across MalConf, DNS, and the live connection.</span></button>
+<button class="q-opt" onclick="ans(2,3,false)"><span class="opt-let">D</span><span class="opt-txt">The visible OCSP and CRL traffic proves the payload uses certificate pinning for C2.</span></button>
+</div>
+<div class="q-fb" id="qf-2"></div>
+</div>
+
+<div class="qcard" id="qc-3">
+<div class="qcard-head"><div class="q-tag">Question 4</div><div class="q-text">The payload claims to be “Maxthon Installer.” Why is that still a valid finding even though the file is already flagged as AsyncRAT?</div></div>
+<div class="q-opts" id="qo-3">
+<button class="q-opt" onclick="ans(3,0,false)"><span class="opt-let">A</span><span class="opt-txt">Because the claimed identity proves the file is legitimate.</span></button>
+<button class="q-opt" onclick="ans(3,1,false)"><span class="opt-let">B</span><span class="opt-txt">Because it shows process hollowing in a browser installer.</span></button>
+<button class="q-opt" onclick="ans(3,2,false)"><span class="opt-let">C</span><span class="opt-txt">Because company metadata overrides behaviour.</span></button>
+<button class="q-opt" onclick="ans(3,3,true)"><span class="opt-let">D</span><span class="opt-txt">Because the claimed installer identity clashes with the filename and delivery context.</span></button>
+</div>
+<div class="q-fb" id="qf-3"></div>
+</div>
+
+<div class="qcard" id="qc-4">
+<div class="qcard-head"><div class="q-tag">Question 5</div><div class="q-text">What is the correct persistence conclusion for this task?</div></div>
+<div class="q-opts" id="qo-4">
+<button class="q-opt" onclick="ans(4,0,false)"><span class="opt-let">A</span><span class="opt-txt">AsyncRAT always persists, so persistence should be marked confirmed.</span></button>
+<button class="q-opt" onclick="ans(4,1,false)"><span class="opt-let">B</span><span class="opt-txt">%AppData% in config proves startup persistence was created.</span></button>
+<button class="q-opt" onclick="ans(4,2,false)"><span class="opt-let">C</span><span class="opt-txt">WinRAR history keys are enough to prove registry persistence.</span></button>
+<button class="q-opt" onclick="ans(4,3,true)"><span class="opt-let">D</span><span class="opt-txt">No autorun should be marked confirmed in this run.</span></button>
+</div>
+<div class="q-fb" id="qf-4"></div>
+</div>
+
+<div class="scoreboard" id="scoreboard">
+<div class="sb-title2">// Investigation Complete</div>
+<div class="sb-score" id="sb-num"></div>
+<div class="sb-of">CORRECT OUT OF 5</div>
+<div class="sb-msg" id="sb-msg"></div>
+<button class="sb-btn" onclick="resetQuiz()">↺ Try Again</button>
+</div>
+<div style="height:50px"></div>
+</main>
+</div>
+
+<footer>
+<div class="f-left">
+<div class="f-course">CC7007 · Workshop 9</div>
+<div class="f-mod">Cyber Incident Response</div>
+</div>
+<div class="f-right">
+<div class="f-name">AsyncRAT with ANY.RUN — Archive Delivery & Config-Based C2</div>
+<div class="f-sub">ANY.RUN Interactive Sandbox · Windows 10 x64 · 2026</div>
+<div style="font-family:var(--head);font-size:15px;font-weight:700;color:var(--teal-l);margin-top:6px">Fatma Yasmine Loumachi</div>
+</div>
+</footer>
+
+<script>
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      const m = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
+      if (m) m.classList.add('active');
+    }
+  });
+}, { rootMargin: '-10% 0px -70% 0px' });
+document.querySelectorAll('[id]').forEach(el => obs.observe(el));
+
+const CORRECT = [1, 1, 2, 3, 3];
+const TOTAL = 5;
+let score = 0;
+let done = new Array(TOTAL).fill(false);
+
+const FB = [
+  {
+    c: "Correct. The process chain supports archive extraction followed by user-context execution.",
+    w: "Not quite. The process chain here is archive-based delivery, not Outlook or script-based execution."
+  },
+  {
+    c: "Correct. Most of that traffic is background OS activity. The stronger C2 evidence comes from MalConf, DNS, and the payload connection.",
+    w: "Not quite. The right lesson here is noise filtering. Do not treat every HTTPS request as malware C2."
+  },
+  {
+    c: "Correct. The strongest infrastructure claim comes from MalConf backed by malicious DNS and the live connection.",
+    w: "Not quite. The cleanest C2 evidence here comes from MalConf, malicious DNS, and the direct connection shown for PID 7660."
+  },
+  {
+    c: "Correct. The mismatch between the claimed identity and the real delivery context is what makes masquerading relevant.",
+    w: "Not quite. The point is the conflict between the claimed identity and the actual delivery/execution context."
+  },
+  {
+    c: "Correct. Capability is not proof. This run does not justify a confirmed autorun claim.",
+    w: "Not quite. The correct answer is analytical restraint: report no confirmed autorun in this run."
+  }
+];
+
+function ans(q, opt, correct) {
+  if (done[q]) return;
+  done[q] = true;
+  const opts = document.querySelectorAll(`#qo-${q} .q-opt`);
+  const fb   = document.getElementById(`qf-${q}`);
+  const card = document.getElementById(`qc-${q}`);
+  const dot  = document.getElementById(`dot-${q}`);
+  opts.forEach((b, i) => {
+    b.disabled = true;
+    if (i === opt) b.classList.add(correct ? 'correct' : 'wrong');
+    else if (i === CORRECT[q] && !correct) b.classList.add('correct');
+    else b.classList.add('dimmed');
+  });
+  fb.className = `q-fb show ${correct ? 'cfb' : 'wfb'}`;
+  fb.innerHTML = `<div class="fb-badge">${correct ? '✓ Correct' : '✗ Not quite'}</div>${FB[q][correct ? 'c' : 'w']}`;
+  card.classList.add(correct ? 'ac' : 'aw');
+  dot.classList.add(correct ? 'c' : 'w');
+  if (correct) score++;
+  if (done.every(Boolean)) showScore();
+}
+
+function showScore() {
+  const board = document.getElementById('scoreboard');
+  const num   = document.getElementById('sb-num');
+  const msg   = document.getElementById('sb-msg');
+  board.classList.add('show');
+  const pct = score / TOTAL;
+  num.textContent = `${score} / ${TOTAL}`;
+  num.style.color = pct === 1 ? 'var(--green)' : pct >= 0.6 ? 'var(--teal)' : 'var(--amber)';
+  msg.textContent = pct === 1
+    ? "Perfect. You correctly separated archive delivery, host profiling, and the real C2 evidence from system network noise."
+    : pct >= 0.6
+    ? "Good. Review the sections on noise filtering and the need to correlate MalConf with DNS and the Connections panel."
+    : "Go back through Steps 2, 5, and 7 carefully. The key issues are archive delivery, config-backed C2 confirmation, and not overstating persistence.";
+  board.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  score = 0;
+  done = new Array(TOTAL).fill(false);
+  for (let i = 0; i < TOTAL; i++) {
+    document.getElementById(`qc-${i}`).classList.remove('ac','aw');
+    document.querySelectorAll(`#qo-${i} .q-opt`).forEach(b => {
+      b.disabled = false;
+      b.classList.remove('correct','wrong','dimmed');
+    });
+    const f = document.getElementById(`qf-${i}`);
+    f.className = 'q-fb'; f.innerHTML = '';
+    document.getElementById(`dot-${i}`).classList.remove('c','w');
+  }
+  document.getElementById('scoreboard').classList.remove('show');
+  document.getElementById('quiz').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
