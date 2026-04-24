@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC7007 — Anti-Forensics Investigation with Autopsy</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark:#080B10;--surface:#0E1520;--card:#121A27;--panel:#070A0F;
+  --cyan:#22D3EE;--cyan-d:#0891B2;--green:#10B981;--green-l:#6EE7B7;
+  --amber:#F59E0B;--amber-l:#FDE68A;--red:#EF4444;--red-l:#FCA5A5;
+  --pink:#EC4899;--pink-l:#F9A8D4;--violet:#7C3AED;--violet-l:#A78BFA;
+  --text:#CBD5E1;--muted:#64748B;--white:#F8FAFC;
+  --mono:'JetBrains Mono',monospace;--head:'Syne',sans-serif;--body:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--dark);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.85;display:flex;flex-direction:column;min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:248px;background:var(--panel);border-right:1px solid rgba(34,211,238,.15);overflow-y:auto;z-index:100;padding-bottom:80px}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid rgba(34,211,238,.12);margin-bottom:4px}
+.sb-week{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--cyan);display:block;margin-bottom:5px;text-transform:uppercase}
+.sb-title{font-family:var(--head);font-size:12.5px;font-weight:700;color:var(--cyan);line-height:1.35}
+.nav-group{padding:12px 18px 3px;font-family:var(--mono);font-size:8px;letter-spacing:2.5px;color:rgba(100,116,139,.45);text-transform:uppercase}
+.sidebar a{display:block;padding:5px 18px 5px 22px;font-size:12px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all .18s;line-height:1.4}
+.sidebar a:hover,.sidebar a.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(34,211,238,.04)}
+.sidebar a.flag-a{color:var(--green-l)}
+.sidebar a.flag-a:hover,.sidebar a.flag-a.active{color:var(--green);border-left-color:var(--green);background:rgba(16,185,129,.05)}
+.layout{display:flex;flex:1}.main{margin-left:248px;padding:0 48px 80px;max-width:1000px;width:100%}
+.hero{background:linear-gradient(150deg,#050709 0%,#071422 55%,#050709 100%);border-bottom:2px solid var(--cyan);padding:54px 48px 46px;margin:0 -48px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-40px;width:400px;height:400px;background:radial-gradient(circle,rgba(34,211,238,.1),transparent 62%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.4);color:var(--cyan);font-family:var(--mono);font-size:10px;letter-spacing:3px;padding:5px 14px;border-radius:3px;margin-bottom:20px;text-transform:uppercase}
+.hero h1{font-family:var(--head);font-size:46px;font-weight:800;color:var(--white);line-height:1.05;margin-bottom:14px}
+.hero h1 em{color:var(--cyan);font-style:normal}
+.hero p.tagline{font-size:14.5px;color:var(--muted);font-weight:300;max-width:690px;margin-bottom:28px;line-height:1.75}
+.chips{display:flex;flex-wrap:wrap;gap:9px}.chip{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted)}
+.chip b{font-weight:500}.chip.c b{color:var(--cyan)}.chip.g b{color:var(--green)}.chip.a b{color:var(--amber)}.chip.p b{color:var(--pink)}
+.divider{margin:50px 0 22px;padding:12px 22px 12px 26px;background:var(--panel);border:1px solid rgba(34,211,238,.2);border-left:5px solid var(--cyan);border-radius:0 8px 8px 0;font-family:var(--head);font-size:13.5px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.divider.am{border-left-color:var(--amber);color:var(--amber-l)}.divider.gn{border-left-color:var(--green);color:var(--green)}.divider.pk{border-left-color:var(--pink);color:var(--pink)}.divider.rd{border-left-color:var(--red);color:var(--red-l)}.divider.vi{border-left-color:var(--violet);color:var(--violet-l)}
+h2.sec{font-family:var(--head);font-size:21px;font-weight:700;color:var(--cyan);margin:28px 0 10px;border-bottom:1px solid rgba(34,211,238,.18);padding-bottom:6px}
+h3.sub{font-family:var(--head);font-size:13px;font-weight:700;color:var(--pink);letter-spacing:1.5px;text-transform:uppercase;margin:18px 0 8px}
+p{margin-bottom:12px;font-size:14.5px;line-height:1.85}strong{color:var(--white);font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;color:var(--cyan);background:rgba(34,211,238,.08);padding:2px 7px;border-radius:3px}
+.box{border-radius:8px;padding:14px 18px;margin:12px 0;font-size:13.5px;line-height:1.7}
+.box .bx-label{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;font-weight:700;display:flex;align-items:center;gap:7px}
+.box.tip{background:rgba(34,211,238,.05);border:1px solid rgba(34,211,238,.22);color:var(--text)}.box.tip .bx-label{color:var(--cyan)}
+.box.warn{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.28);color:#FDE68A}.box.warn .bx-label{color:var(--amber)}
+.box.danger{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.28);color:var(--red-l)}.box.danger .bx-label{color:var(--red)}
+.box.success{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.28);color:var(--green-l)}.box.success .bx-label{color:var(--green)}
+.box.info{background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.28);color:var(--violet-l)}.box.info .bx-label{color:var(--violet-l)}
+.box p{margin:0 0 6px;font-size:13.5px;line-height:1.65}.box p:last-child{margin:0}.box strong{color:var(--white)}
+.scenario-card{background:linear-gradient(135deg,#0B0E18,#071522);border:1px solid rgba(34,211,238,.3);border-left:5px solid var(--cyan);border-radius:8px;padding:26px 30px;margin:16px 0;position:relative;overflow:hidden}
+.scenario-card::after{content:'🕵️';position:absolute;right:18px;top:14px;font-size:36px;opacity:.1}
+.sc-ref{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(34,211,238,.45);margin-bottom:10px;text-transform:uppercase}
+.sc-body p{color:#C8C8C8;font-size:14.5px;margin-bottom:10px;line-height:1.85}.sc-body p:last-child{margin:0}
+.concept{background:var(--card);border:1px solid rgba(34,211,238,.18);border-radius:10px;margin:15px 0;overflow:hidden}
+.concept-header{background:rgba(34,211,238,.05);border-bottom:1px solid rgba(34,211,238,.12);padding:13px 20px;display:flex;align-items:center;gap:12px}
+.ch-icon{font-size:20px}.ch-title{font-family:var(--head);font-size:15.5px;font-weight:700;color:var(--cyan)}.ch-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.concept-body{padding:18px 22px;font-size:14px;line-height:1.85;color:var(--text)}.concept-body p{font-size:14px;margin-bottom:10px}.concept-body p:last-child{margin:0}
+.goal-box{background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(245,158,11,.02));border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:16px 20px;margin:14px 0}
+.gb-label{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--amber);text-transform:uppercase;margin-bottom:10px;font-weight:700;display:flex;align-items:center;gap:8px}.gb-label::before{content:'🎯'}
+.goal-box ul,.look-for ul{list-style:none;padding:0}.goal-box ul li{font-size:13.5px;color:var(--amber-l);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(245,158,11,.08)}.goal-box ul li:last-child{border:none}.goal-box ul li::before{content:'→';position:absolute;left:0;color:var(--amber)}
+.ui-wrap{margin:16px 0;border:1px solid rgba(34,211,238,.18);border-radius:8px;overflow:hidden}.ui-header{background:rgba(34,211,238,.06);border-bottom:1px solid rgba(34,211,238,.12);padding:10px 18px;display:flex;align-items:center;gap:10px}
+.ui-pill{color:var(--white);font-family:var(--head);font-size:12px;font-weight:700;padding:3px 12px;border-radius:12px;flex-shrink:0;background:var(--cyan-d)}.ui-pill.gn{background:var(--green)}.ui-pill.am{background:var(--amber);color:#1a0e00}.ui-pill.pk{background:var(--pink)}.ui-pill.rd{background:var(--red)}.ui-pill.vi{background:var(--violet)}
+.ui-desc{font-size:13px;color:var(--text);font-weight:500}.ui-inner{padding:14px 18px;background:rgba(255,255,255,.008)}
+.out-block{background:#050709;border:1px solid rgba(34,211,238,.12);border-left:3px solid var(--cyan);border-radius:6px;overflow:hidden;margin:9px 0}.out-block.am{border-left-color:var(--amber)}.out-block.gn{border-left-color:var(--green)}.out-block.pk{border-left-color:var(--pink)}.out-block.rd{border-left-color:var(--red)}.out-block.vi{border-left-color:var(--violet)}
+.ob-top{background:rgba(34,211,238,.03);border-bottom:1px solid rgba(34,211,238,.07);padding:5px 14px;display:flex;justify-content:space-between;align-items:center}
+.lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:rgba(100,116,139,.5);text-transform:uppercase}.tag{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:1px 8px;border-radius:3px}.tag.ui{color:var(--cyan);background:rgba(34,211,238,.1)}.tag.note{color:rgba(100,116,139,.5);background:rgba(255,255,255,.04)}
+pre{font-family:var(--mono);font-size:12.5px;color:#00E5A0;line-height:1.8;padding:14px 16px;overflow-x:auto;white-space:pre-wrap}.hl{color:#00E5A0!important;font-weight:700}.hl-r{color:#FCA5A5!important;font-weight:700}.hl-a{color:#FDE68A!important;font-weight:700}.hl-c{color:#67E8F9!important;font-weight:700}.hl-p{color:#F9A8D4!important;font-weight:700}.hl-v{color:#A78BFA!important;font-weight:700}
+.look-for{background:rgba(34,211,238,.04);border:1px solid rgba(34,211,238,.2);border-radius:7px;padding:14px 18px;margin:11px 0}.lf-head{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:7px}.lf-head::before{content:'👁'}
+.look-for ul li{font-size:13.5px;color:var(--text);padding:5px 0 5px 20px;position:relative;line-height:1.6;border-bottom:1px solid rgba(255,255,255,.04)}.look-for ul li:last-child{border:none}.look-for ul li::before{content:'→';position:absolute;left:0;color:var(--cyan)}
+.flag-box{background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(16,185,129,.02));border:1px solid rgba(16,185,129,.38);border-left:5px solid var(--green);border-radius:8px;padding:22px 28px;margin:22px 0;position:relative;overflow:hidden}.flag-box::after{content:'⚑';position:absolute;right:20px;top:12px;font-size:34px;color:rgba(16,185,129,.1);pointer-events:none}
+.fb-label{font-family:var(--mono);font-size:9.5px;letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:9px}.fb-val{font-family:var(--mono);font-size:12px;color:var(--green);margin-bottom:12px;word-break:break-word;line-height:1.7;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.16);border-radius:5px;padding:10px 14px}.fb-why{font-size:13px;color:var(--green-l);line-height:1.7;border-top:1px solid rgba(16,185,129,.14);padding-top:11px}
+.roadmap{border-left:2px solid rgba(34,211,238,.25);margin:14px 0 24px;padding-left:0}.rm-item{display:flex;gap:14px;padding:9px 0 9px 22px;position:relative}.rm-item::before{content:'';position:absolute;left:-7px;top:16px;width:12px;height:12px;background:var(--cyan-d);border-radius:50%;border:2px solid var(--dark)}.rm-item.rf::before{background:var(--green)}.rm-item.rt::before{background:var(--pink)}.rm-item.ra::before{background:var(--amber)}
+.rm-step{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--cyan);min-width:60px;text-transform:uppercase;margin-top:2px;flex-shrink:0}.rm-item.rf .rm-step{color:var(--green)}.rm-item.rt .rm-step{color:var(--pink)}.rm-item.ra .rm-step{color:var(--amber)}
+.rm-title{font-family:var(--head);font-size:15px;font-weight:600;color:var(--white);margin-bottom:2px}.rm-desc{font-size:12.5px;color:var(--muted)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 18px}.grid-card{background:var(--card);border:1px solid rgba(34,211,238,.14);border-radius:7px;padding:14px 16px}.gc-head{font-family:var(--mono);font-size:12px;color:var(--cyan);margin-bottom:5px}.gc-body{font-size:13px;color:var(--muted)}
+.recap-grid{display:flex;flex-direction:column;gap:10px;margin:14px 0 22px}.recap-card{border-radius:0 8px 8px 0;padding:16px 20px}.rc-title{font-family:var(--head);font-size:16px;font-weight:700;margin-bottom:5px}.rc-body{font-size:13.5px;line-height:1.65;color:var(--muted)}
+.qcard{background:var(--card);border:1px solid rgba(34,211,238,.18);border-radius:10px;margin:13px 0;overflow:hidden;transition:border-color .25s}.qcard.ac{border-color:rgba(16,185,129,.5)}.qcard.aw{border-color:rgba(239,68,68,.4)}
+.qcard-head{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,.05)}.q-tag{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:7px}.q-text{font-size:14.5px;font-weight:500;color:var(--white);line-height:1.55}
+.q-opts{padding:12px 20px 16px;display:flex;flex-direction:column;gap:8px}.q-opt{display:flex;align-items:flex-start;gap:11px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:10px 13px;cursor:pointer;transition:all .18s;text-align:left;width:100%;font-family:var(--body)}
+.q-opt:hover:not(:disabled){background:rgba(34,211,238,.07);border-color:rgba(34,211,238,.38)}.q-opt:disabled{cursor:default}.opt-let{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.06);border-radius:4px;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0}.opt-txt{font-size:13.5px;color:var(--text);line-height:1.5}
+.q-opt.correct{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.42)}.q-opt.correct .opt-let{background:var(--green);color:#052E16}.q-opt.correct .opt-txt{color:var(--green-l)}.q-opt.wrong{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.35)}.q-opt.wrong .opt-let{background:var(--red);color:var(--white)}.q-opt.wrong .opt-txt{color:var(--red-l);text-decoration:line-through}.q-opt.dimmed{opacity:.3}
+.q-fb{display:none;margin:0 20px 16px;border-radius:7px;padding:12px 15px;font-size:13.5px;line-height:1.65;animation:fadeUp .3s ease}.q-fb.show{display:block}.fb-badge{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-weight:700}.q-fb.cfb{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.25);color:var(--green-l)}.q-fb.cfb .fb-badge{color:var(--green)}.q-fb.wfb{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);color:var(--red-l)}.q-fb.wfb .fb-badge{color:var(--red)}
+.scoreboard{display:none;background:var(--panel);border:1px solid rgba(34,211,238,.35);border-radius:10px;padding:32px;margin:22px 0;text-align:center;animation:fadeUp .4s ease}.scoreboard.show{display:block}.sb-t{font-family:var(--head);font-size:17px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}.sb-n{font-family:var(--head);font-size:62px;font-weight:800;line-height:1;margin-bottom:5px}.sb-of{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:16px}.sb-msg{font-size:14.5px;color:var(--text);margin-bottom:24px;font-style:italic}.sb-btn{background:var(--cyan-d);color:var(--white);font-family:var(--head);font-size:15px;font-weight:700;padding:10px 28px;border-radius:6px;border:none;cursor:pointer}.sb-btn:hover{background:var(--cyan);color:var(--dark)}
+footer{background:var(--panel);border-top:2px solid var(--cyan);margin-left:248px;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}.f-course{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}.f-mod{font-family:var(--head);font-size:18px;font-weight:700;color:var(--cyan)}.f-right{text-align:right}.f-name{font-family:var(--head);font-size:18px;font-weight:700;color:var(--white)}.f-sub{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--panel)}::-webkit-scrollbar-thumb{background:var(--cyan-d);border-radius:3px}
+@media(max-width:850px){.sidebar{position:relative;width:100%;height:auto}.main,footer{margin-left:0}.main{padding:0 22px 60px}.hero{margin:0 -22px 35px;padding:42px 24px}.grid-2{grid-template-columns:1fr}.hero h1{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar">
+  <div class="sb-logo">
+    <span class="sb-week">// CC7007 · Anti-Forensics Workshop</span>
+    <span class="sb-title">Suspected IP Theft — Autopsy Investigation</span>
+  </div>
+  <div class="nav-group">Before You Start</div>
+  <a href="#understand">What Are We Doing?</a>
+  <a href="#case">Case Briefing</a>
+  <a href="#truth">What Is Known / Unknown</a>
+  <a href="#roadmap">Investigation Roadmap</a>
+  <div class="nav-group">Part 1 — Autopsy Setup</div>
+  <a href="#part1">Create Case & Run Ingest</a>
+  <a href="#task12">Verify Evidence & Volumes</a>
+  <a class="flag-a" href="#finding1">⚑ Finding 1 — Baseline</a>
+  <div class="nav-group">Part 2 — Communications</div>
+  <a href="#part2">PST Files & Email Thread</a>
+  <a href="#cipher">Ciphered Messages</a>
+  <a class="flag-a" href="#finding2">⚑ Finding 2 — Covert Comms</a>
+  <div class="nav-group">Part 3 — Documents</div>
+  <a href="#part3">Confidential IP Artefacts</a>
+  <a href="#noise">Noise vs Evidence</a>
+  <div class="nav-group">Part 4 — Images & Stego</div>
+  <a href="#part4">Granada Images</a>
+  <a href="#hashcompare">Hash & Metadata Comparison</a>
+  <a class="flag-a" href="#finding3">⚑ Finding 3 — Suspect Carrier</a>
+  <div class="nav-group">Part 5 — Anti-Forensics</div>
+  <a href="#part5">BitCrypt & Browser Artefacts</a>
+  <a href="#slack">Slack / Unallocated Space</a>
+  <a class="flag-a" href="#finding4">⚑ Finding 4 — Anti-Forensics Map</a>
+  <div class="nav-group">Part 6 — Report</div>
+  <a href="#part6">What Students Submit</a>
+  <a href="#severity">Severity Recommendation</a>
+  <a href="#recap">What Did We Learn?</a>
+  <a href="#quiz">Knowledge Check</a>
+</nav>
+
+<main class="main">
+<div class="hero">
+  <div class="hero-badge">CC7007 · Digital Forensics · Anti-Forensics</div>
+  <h1>IP Theft Investigation<br><em>Autopsy + Anti-Forensics</em></h1>
+  <p class="tagline">Students investigate a suspected intellectual property theft using Autopsy. The case is intentionally incomplete: the suspected steganographic payload may not be recoverable during the workshop. The goal is to identify anti-forensic behaviour, build a defensible hypothesis, and report uncertainty properly.</p>
+  <div class="chips">
+    <div class="chip c">Tool: <b>Autopsy / The Sleuth Kit</b></div>
+    <div class="chip a">Theme: <b>anti-forensics</b></div>
+    <div class="chip g">Artefacts: <b>disk image, PST emails, docs, images</b></div>
+    <div class="chip p">Duration: <b>2–3 hours</b></div>
+  </div>
+</div>
+
+<div class="divider" id="understand">🧠 WHAT ARE WE DOING?</div>
+<p>This workshop is not a simple “find the flag” exercise. It is a forensic reasoning exercise. Students are given a disk image from a shared university drive and email artefacts recovered from a mail server. They must use Autopsy to locate relevant artefacts, reconstruct the communication path, identify anti-forensic techniques, and decide whether the evidence supports suspected intellectual property misuse.</p>
+
+<p>The important teaching point is the boundary between <strong>evidence</strong>, <strong>inference</strong>, and <strong>unsupported conclusion</strong>. The case contains strong indicators of attempted IP theft: suspicious communications, ciphered messages, BitCrypt-related activity, image format conversion, duplicate image versions with different hashes, and possible slack-space artefacts. But the hidden payload is not definitively recovered. That means the correct conclusion is not “IP theft proven”; it is “attempted or likely misuse supported by evidence, with unresolved payload recovery.”</p>
+
+<div class="box warn">
+  <div class="bx-label">⚠️ Instructor framing</div>
+  <p> <strong>You are not expected to fully decrypt the image or prove the payload.</strong> You are expected to document what Autopsy can show, identify anti-forensic techniques, and write a balanced finding. This avoids panic and stops students from inventing certainty.</p>
+</div>
+
+<h2 class="sec">What students will practise</h2>
+<div class="grid-2">
+  <div class="grid-card" style="border-left:3px solid var(--cyan)">
+    <div class="gc-head">Autopsy navigation</div>
+    <div class="gc-body">Add a disk image, run ingest, inspect volumes, search files, examine metadata, extract artefacts, and use timeline/web/email views.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--pink)">
+    <div class="gc-head" style="color:var(--pink)">Anti-forensic recognition</div>
+    <div class="gc-body">Spot deletion, carving, ciphered communication, steganography indicators, misleading passwords, and metadata mismatch.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--amber)">
+    <div class="gc-head" style="color:var(--amber)">Evidence triage</div>
+    <div class="gc-body">Separate relevant artefacts from background noise such as unrelated Enron case files and normal academic material.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--green)">
+    <div class="gc-head" style="color:var(--green)">Defensible reporting</div>
+    <div class="gc-body">Write findings with confidence levels, cite artefact locations, and recommend severity without overstating proof.</div>
+  </div>
+</div>
+
+<div class="divider pk" id="case">📁 CASE BRIEFING</div>
+<div class="scenario-card">
+  <div class="sc-ref">// Incident type: suspected insider misuse · Context: university IP · Main tool: Autopsy</div>
+  <div class="sc-body">
+    <p>A UK university without specialist digital forensics capability asks London Metropolitan University to investigate suspected intellectual property theft. Relevant files from a staff member's shared drive and emails from the mail server have been recovered and placed on a flash memory drive, then imaged by IT staff.</p>
+    <p>The suspected drive is shared, so attribution is not automatic. Students must avoid assuming that every file belongs to one user. They must reconstruct what happened from artefacts: email content, attachments, documents, image metadata, browsing history, deleted/carved files, and suspicious software.</p>
+    <p>Your task: <strong>investigate the image in Autopsy and produce a management-facing forensic report explaining whether misuse is supported, what anti-forensic techniques appear, and how severe the incident should be treated.</strong></p>
+  </div>
+</div>
+
+<div class="divider vi" id="truth">🧩 WHAT IS KNOWN / UNKNOWN</div>
+<div class="grid-2">
+  <div class="grid-card" style="border-left:3px solid var(--green)">
+    <div class="gc-head" style="color:var(--green)">Known from the artefacts</div>
+    <div class="gc-body">The image contains PST email files, a John/Freddy email thread, ciphered messages, a suspicious Granada BMP attachment, documents including an IP proposal, browser sessions showing BitCrypt research, and BitCrypt-related files.</div>
+  </div>
+  <div class="grid-card" style="border-left:3px solid var(--red)">
+    <div class="gc-head" style="color:var(--red-l)">Not conclusively known</div>
+    <div class="gc-body">The suspected hidden payload is not recovered. The password “Bushmills” appears to fail. The true embedded content, if any, is not confirmed during the standard workshop.</div>
+  </div>
+</div>
+
+<div class="box tip">
+  <div class="bx-label">💡 Correct conclusion model</div>
+  <p><strong>Good:</strong> “The evidence supports likely attempted IP exfiltration using anti-forensic techniques, but the hidden payload was not recovered.”</p>
+  <p><strong>Bad:</strong> “IP theft definitely happened.”</p>
+</div>
+
+<div class="divider vi" id="roadmap">🗺 INVESTIGATION ROADMAP</div>
+<div class="roadmap">
+  <div class="rm-item"><div class="rm-step">Part 1</div><div><div class="rm-title">Create the Autopsy case and establish evidence baseline</div><div class="rm-desc">Hash, file system, volumes, ingest modules, and evidence handling notes.</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 2</div><div><div class="rm-title">Investigate email communications</div><div class="rm-desc">PST files, John/Freddy thread, attachment flow, and ciphered messages.</div></div></div>
+  <div class="rm-item rf"><div class="rm-step">Finding 2</div><div><div class="rm-title">Covert communications identified</div><div class="rm-desc">Monoalphabetic substitution and suspicious intent indicators.</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 3</div><div><div class="rm-title">Triage documents and identify possible IP material</div><div class="rm-desc">Separate relevant confidential documents from unrelated research/noise.</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 4</div><div><div class="rm-title">Inspect images, metadata, and Granada BMP variants</div><div class="rm-desc">Look for format conversion, duplicate names, hash mismatch, EXIF links.</div></div></div>
+  <div class="rm-item rf"><div class="rm-step">Finding 3</div><div><div class="rm-title">Suspected steganographic carrier</div><div class="rm-desc">Granada_2012 JPG/BMP relationship and BitCrypt compatibility.</div></div></div>
+  <div class="rm-item"><div class="rm-step">Part 5</div><div><div class="rm-title">Map the anti-forensics techniques</div><div class="rm-desc">Encryption, steganography, deletion/carving, misleading password, slack/unallocated space.</div></div></div>
+  <div class="rm-item rt"><div class="rm-step">Part 6</div><div><div class="rm-title">Produce a management-facing report</div><div class="rm-desc">Timeline, evidence table, anti-forensics map, severity recommendation, limitations.</div></div></div>
+</div>
+
+<!-- PART 1 -->
+<div class="divider" id="part1">PART 1 — AUTOPSY SETUP AND EVIDENCE BASELINE</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~20 min · Create case, add disk image, run ingest, verify baseline</p>
+
+<p>Students begin by creating a clean Autopsy case. The first goal is not to “find suspicious stuff”. It is to establish the evidence baseline: what image was examined, what file system was present, whether hashing was verified, and what volumes/data sources Autopsy detected.</p>
+
+<div class="goal-box">
+  <div class="gb-label">What we are finding out</div>
+  <ul>
+    <li>What data source was loaded into Autopsy and whether the hash was recorded.</li>
+    <li>What file system and volume structure are present.</li>
+    <li>Which ingest modules were run and what artefact categories are available.</li>
+    <li>Whether the evidence acquisition has limitations because files were placed on a flash drive rather than acquired directly as a bit-for-bit source copy.</li>
+  </ul>
+</div>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill">🖥 Autopsy</div><div class="ui-desc">Create New Case → Add Data Source → Disk Image or VM File</div></div>
+  <div class="ui-inner">
+    <div class="out-block">
+      <div class="ob-top"><div class="lbl">Suggested case metadata</div><div class="tag note">STUDENT NOTES</div></div>
+      <pre>Case name:     CC7007_IP_Theft_AntiForensics_[student initials]
+Data source:   CW_Image.001
+Examiner:      [student name]
+Purpose:       Suspected IP theft / anti-forensics investigation
+Primary tool:  Autopsy
+Do not alter original evidence. Work only from the provided image.</pre>
+    </div>
+    <div class="look-for">
+      <div class="lf-head">Recommended ingest modules</div>
+      <ul>
+        <li><strong>File Type Identification</strong> — required for spotting images, documents, archives, PST files, and renamed files.</li>
+        <li><strong>Embedded File Extractor</strong> — useful for archives and compound documents.</li>
+        <li><strong>Recent Activity</strong> — useful for browser sessions and web artefacts.</li>
+        <li><strong>Email Parser</strong> — useful where PST parsing is available in your Autopsy setup.</li>
+        <li><strong>Keyword Search</strong> — use targeted words such as <code>BitCrypt</code>, <code>Granada</code>, <code>Bushmills</code>, <code>IP rights</code>, <code>royalties</code>, <code>Haggerty</code>, <code>Freddy</code>.</li>
+        <li><strong>PhotoRec / file carving options</strong> if available — relevant because the case includes carved images and deleted/unallocated artefacts.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec" id="task12">Task 1.2 — Verify the disk image structure</h2>
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill am">🖥 Autopsy</div><div class="ui-desc">Data Sources → Volume / File System views</div></div>
+  <div class="ui-inner">
+    <p>Inspect the data source summary and volume tree. Students should record whether Autopsy shows a FAT32-style file system, two volumes, accessible content in one volume, and inaccessible/unallocated material in the other.</p>
+    <div class="out-block am">
+      <div class="ob-top"><div class="lbl">Record this in your evidence baseline</div><div class="tag note">BASELINE</div></div>
+      <pre>Image name:         CW_Image.001
+File system:        [record from Autopsy]
+Volume structure:   [vol1 / vol2 / unallocated areas]
+Hash recorded:      [yes/no + hash value if visible]
+Initial limitation: Evidence was supplied as recovered files imaged from a flash drive, not necessarily a pristine direct acquisition from the original shared drive.</pre>
+    </div>
+  </div>
+</div>
+
+<div class="flag-box" id="finding1">
+  <div class="fb-label">⚑ Finding 1 — Evidence Baseline Established</div>
+  <div class="fb-val">Data source: [CW_Image.001]
+Autopsy version: [version used]
+File system / volumes: [student value]
+Hash recorded: [student value]
+Acquisition limitation: [direct bit-for-bit original? or flash-drive image?]
+Confidence: High for what Autopsy shows; Medium for original-source assumptions.</div>
+  <div class="fb-why">A forensic report must begin with evidence identity and limitations. If the image was created from recovered files placed on a flash drive, students should not overclaim original file-system completeness. This matters later when discussing deleted files, carved images, and slack/unallocated space.</div>
+</div>
+
+<!-- PART 2 -->
+<div class="divider am" id="part2">PART 2 — EMAIL COMMUNICATIONS AND COVERT MESSAGING</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~35 min · PST files, email thread, attachment flow, ciphered messages</p>
+
+<p>The email thread is the narrative spine of the case. Students should identify the two PST files, locate the John/Freddy conversation, record dates/times, and identify when the communication changes from ordinary text to unreadable/ciphered text.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">✉️</div><div><div class="ch-title">Why email matters here</div><div class="ch-sub">Intent and concealment are more important than file presence alone</div></div></div>
+  <div class="concept-body">
+    <p>A confidential document sitting on a shared drive is not enough to prove theft. The email thread provides context: discussion of IP rights, money, instructions to leave no traces, a password exchange, and an image attachment sent during the suspicious communication window. That turns isolated artefacts into a coherent investigative hypothesis.</p>
+  </div>
+</div>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill am">🖥 Autopsy</div><div class="ui-desc">Views → Data Artifacts → Email Messages / File Views → PST files</div></div>
+  <div class="ui-inner">
+    <div class="look-for">
+      <div class="lf-head">What to locate</div>
+      <ul>
+        <li><strong>PST containers:</strong> locate <code>GetRid.pst</code> and <code>GetRid.pst2</code> or equivalent parsed email containers.</li>
+        <li><strong>John/Freddy thread:</strong> record sender, recipient, subject if available, and timestamp sequence from 12–18 February 2013.</li>
+        <li><strong>Attachment:</strong> identify the email where <code>Granada_2012(v3).bmp</code> or a similar Granada BMP image is attached.</li>
+        <li><strong>Cipher transition:</strong> identify where readable conversation changes into ciphered/unreadable text.</li>
+      </ul>
+    </div>
+    <div class="out-block">
+      <div class="ob-top"><div class="lbl">Student evidence log</div><div class="tag note">EMAIL THREAD</div></div>
+      <pre>Date/time: [record]
+From:      [record]
+To:        [record]
+Content:   [normal / suspicious / ciphered]
+Attachment:[none / Granada BMP / PDF]
+Relevance: [motive / intent / anti-forensics / carrier file]</pre>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec" id="cipher">Task 2.2 — Treat the cipher as anti-forensics</h2>
+<div class="box danger">
+  <div class="bx-label">⚠️ Do not present deciphered text as magically proven</div>
+  <p>If students use an online substitution solver, they must document that this is an external analysis step and not something Autopsy itself proves. The ciphered email is direct evidence of concealment; the decoded meaning is an analytical result that needs validation.</p>
+</div>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill rd">🧩 Analysis</div><div class="ui-desc">Monoalphabetic substitution hypothesis</div></div>
+  <div class="ui-inner">
+    <p>Ask students to try simple frequency-analysis thinking before giving them the solved text. They should understand that a substitution cipher hides content but leaves structural traces: repeated letters, word lengths, punctuation and conversational flow.</p>
+    <div class="out-block rd">
+      <div class="ob-top"><div class="lbl">Possible decoded meaning — instructor-controlled reveal</div><div class="tag note">DO NOT GIVE TOO EARLY</div></div>
+      <pre>Key ideas reportedly recovered:
+- interest in obtaining IP rights
+- university would have to pay to get it back / pay royalties
+- payment discussion
+- instruction to use a tool and leave no traces
+- password clue: "Bushmills" — later appears unreliable</pre>
+    </div>
+  </div>
+</div>
+
+<div class="flag-box" id="finding2">
+  <div class="fb-label">⚑ Finding 2 — Covert Communications Identified</div>
+  <div class="fb-val">Artefact: John/Freddy email thread
+Technique: Monoalphabetic substitution / ciphered communication
+Indicators: unreadable messages, suspicious money/IP discussion, "leave no traces", password exchange
+Autopsy source: [PST path / email artefact ID / attachment]
+Confidence: High for concealment; Medium for decoded content unless independently validated.</div>
+  <div class="fb-why">This is anti-forensics by communication obfuscation. It does not destroy evidence, but it attempts to reduce readability and delay interpretation. The correct student finding is not just “encrypted email found”; it is “communication content was deliberately concealed during the suspicious transaction window.”</div>
+</div>
+
+<!-- PART 3 -->
+<div class="divider pk" id="part3">PART 3 — DOCUMENT TRIAGE: WHAT MAY BE IP?</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~25 min · Documents, titles, watermarks, relevance filtering</p>
+
+<p>The disk image contains several documents. Students must identify which documents are potentially relevant to IP theft and which are background or noise. This is evidence triage: not every interesting file matters.</p>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill pk">🖥 Autopsy</div><div class="ui-desc">File Types → Documents / Keyword Search</div></div>
+  <div class="ui-inner">
+    <div class="look-for">
+      <div class="lf-head">Documents to inspect</div>
+      <ul>
+        <li><code>INTELLECTUAL PROPERTY PROPOSAL.doc</code> — possible core IP artefact. Look for title, author, confidentiality marking, missing figures, timestamps.</li>
+        <li><code>MetaFor.doc</code> — research-related document; inspect whether it is target IP, background research, or decoy/noise.</li>
+        <li><code>TagSNet.doc</code> — includes Enron/Jeff Skilling material; likely relevant to research context but may also act as noise.</li>
+        <li><code>11-2-13-Peter-Svensson.pdf</code> — event attachment; useful for timeline and meeting opportunity rather than direct theft proof.</li>
+      </ul>
+    </div>
+    <div class="out-block pk">
+      <div class="ob-top"><div class="lbl">Document triage table</div><div class="tag note">REQUIRED</div></div>
+      <pre>Document name | Key metadata | Content summary | IP relevance | Confidence
+[filename]    | [dates]      | [summary]       | High/Med/Low | [why]</pre>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec" id="noise">Noise vs evidence</h2>
+<div class="box tip">
+  <div class="bx-label">💡 Teach this explicitly</div>
+  <p>The Enron / Jeff Skilling material is interesting, but it may be research material inside the academic documents. Students should not treat every Enron image as evidence of misconduct. The analytical skill is to link artefacts to the suspected misuse path.</p>
+</div>
+
+<!-- PART 4 -->
+<div class="divider vi" id="part4">PART 4 — IMAGES, METADATA AND SUSPECTED STEGANOGRAPHY</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~40 min · Granada image variants, hashes, EXIF, carved images, attachment trail</p>
+
+<p>The Granada image is the central anti-forensics artefact. It appears as a normal personal image, but its presence as both JPG and BMP, its attachment in the suspicious email thread, and its relationship to BitCrypt create a strong steganography hypothesis.</p>
+
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">🖼️</div><div><div class="ch-title">Why a normal-looking image can be suspicious</div><div class="ch-sub">Steganography hides data in plain sight</div></div></div>
+  <div class="concept-body">
+    <p>Encryption hides message content. Steganography attempts to hide the existence of the message. In this case, the suspicious behaviour is not that a Granada image exists. It is that the image appears in multiple formats, one version is attached to suspicious communications, BitCrypt is present, BitCrypt works with BMP files, and the variants reportedly have different hashes despite visual similarity.</p>
+  </div>
+</div>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill vi">🖥 Autopsy</div><div class="ui-desc">File Types → Images / Keyword Search → Granada</div></div>
+  <div class="ui-inner">
+    <div class="look-for">
+      <div class="lf-head">What to compare</div>
+      <ul>
+        <li><strong>Granada_2012.JPG</strong> — original-looking image. Record EXIF, camera model, date taken, file size, hash.</li>
+        <li><strong>Granada_2012(v3).bmp</strong> — BMP attachment or BMP variant. Record file size, hash, timestamps, parent path/email link.</li>
+        <li><strong>Second BMP variant</strong> — if present, compare size and hash against the first BMP.</li>
+        <li><strong>Carved images</strong> — note whether carved files lack timestamps. That is a limitation, not useless evidence.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec" id="hashcompare">Task 4.2 — Hash and metadata comparison</h2>
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill am">🖥 Autopsy / External Hex Tool</div><div class="ui-desc">Compare file size, hash, metadata, and visual appearance</div></div>
+  <div class="ui-inner">
+    <div class="out-block am">
+      <div class="ob-top"><div class="lbl">Student comparison template</div><div class="tag note">IMAGE VARIANTS</div></div>
+      <pre>File name           | Type | Size | Hash | EXIF date | Camera | Source location | Relevance
+Granada_2012.JPG    | JPG  |      |      |           |        |                 | baseline/original
+Granada_2012(v3).bmp| BMP  |      |      |           |        | email attachment | suspected carrier
+[second BMP]        | BMP  |      |      |           |        | disk image       | compare hash/size</pre>
+    </div>
+    <div class="box warn">
+      <div class="bx-label">⚠️ Interpretation rule</div>
+      <p>Same visual appearance + same/similar size + different hash does <strong>not</strong> automatically prove steganography. It is an indicator. Its strength increases when combined with BitCrypt presence, BMP requirement, suspicious email thread, and instruction to leave no traces.</p>
+    </div>
+  </div>
+</div>
+
+<div class="flag-box" id="finding3">
+  <div class="fb-label">⚑ Finding 3 — Suspected Steganographic Carrier Identified</div>
+  <div class="fb-val">Carrier candidate: Granada_2012(v3).bmp
+Supporting artefacts: JPG original / BMP variants / different hashes / email attachment / BitCrypt presence
+Anti-forensic category: steganography + encryption
+Payload recovered: [yes/no]
+Confidence: High that image is suspicious; Medium that it contains exfiltrated IP unless payload recovered.</div>
+  <div class="fb-why">This is the strongest anti-forensic artefact in the case. The correct conclusion is calibrated: the image is a credible suspected carrier, but the hidden content is not proven unless students recover it.</div>
+</div>
+
+<!-- PART 5 -->
+<div class="divider rd" id="part5">PART 5 — ANTI-FORENSICS MAP</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~35 min · BitCrypt, browser history, deletion/carving, slack/unallocated areas</p>
+
+<p>This section turns the case from “digital investigation” into an anti-forensics lecture. Students must classify each behaviour by technique, evidence source, and investigative impact.</p>
+
+<div class="ui-wrap">
+  <div class="ui-header"><div class="ui-pill rd">🖥 Autopsy</div><div class="ui-desc">Keyword Search → BitCrypt / Web History / Archives / Executables</div></div>
+  <div class="ui-inner">
+    <div class="look-for">
+      <div class="lf-head">BitCrypt-related artefacts</div>
+      <ul>
+        <li>BitCrypt ZIP or executable files.</li>
+        <li>README or documentation explaining usage.</li>
+        <li>Browser history showing visits to BitCrypt pages or download pages.</li>
+        <li>Temporal proximity between BitCrypt access and Granada BMP attachment/access.</li>
+      </ul>
+    </div>
+    <div class="out-block rd">
+      <div class="ob-top"><div class="lbl">Anti-forensics evidence map</div><div class="tag note">REQUIRED</div></div>
+      <pre>Technique              | Evidence source                         | Impact on investigation
+Ciphered emails        | John/Freddy PST thread                  | Hides intent/content
+Steganography          | Granada BMP + BitCrypt + hash mismatch  | Hides possible payload
+Encryption             | BitCrypt capability + password exchange | Blocks content recovery
+Deletion/carving       | carved images / missing timestamps      | Weakens timeline
+Misleading password    | "Bushmills" fails / later correction    | Delays recovery
+Slack/unallocated area | BMP slack / unallocated material        | Requires deeper analysis outside Autopsy</pre>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec" id="slack">Task 5.2 — Slack and unallocated space</h2>
+<div class="box danger">
+  <div class="bx-label">⚠️ Hard boundary for the workshop</div>
+  <p>Autopsy can reveal unallocated/carved material and sometimes expose slack-related artefacts, but fully recovering a hidden encrypted payload may require specialist carving, stego analysis, password recovery, or reverse engineering. That is beyond the normal workshop. Do not penalise students for not cracking it.</p>
+</div>
+
+<div class="flag-box" id="finding4">
+  <div class="fb-label">⚑ Finding 4 — Anti-Forensics Techniques Mapped</div>
+  <div class="fb-val">Identified techniques:
+1. Communication obfuscation: ciphered emails
+2. Data hiding: suspected steganography in BMP
+3. Encryption: BitCrypt and password requirement
+4. Artefact reduction: deletion / carved files / missing timestamps
+5. Investigator delay: wrong or misleading password clue
+Overall assessment: anti-forensic behaviour is strongly supported.</div>
+  <div class="fb-why">The case is valuable because multiple weak indicators reinforce each other. A single unusual BMP is not enough. A suspicious BMP plus ciphered emails plus BitCrypt plus “leave no traces” plus failed password is a coherent anti-forensics pattern.</div>
+</div>
+
+<!-- PART 6 -->
+<div class="divider gn" id="part6">PART 6 — STUDENT REPORT DELIVERABLES</div>
+<p style="font-size:13px;color:var(--muted);font-style:italic">⏱ ~35 min · Submit a short management-facing forensic report</p>
+
+<p>Students submit a concise report. It should not read like a raw Autopsy dump. It should explain what was examined, what was found, how anti-forensics affected the investigation, and what severity should be assigned.</p>
+
+<div class="goal-box">
+  <div class="gb-label">Required report sections</div>
+  <ul>
+    <li><strong>Methodology:</strong> tool used, data source loaded, ingest modules, keyword strategy, limitations.</li>
+    <li><strong>Timeline:</strong> event → evidence source → timestamp → confidence.</li>
+    <li><strong>Evidence table:</strong> email thread, confidential document, Granada image variants, BitCrypt artefacts, browser sessions.</li>
+    <li><strong>Anti-forensics map:</strong> technique → artefact → investigative impact.</li>
+    <li><strong>Conclusion:</strong> whether misuse is supported, attempted, or unproven.</li>
+    <li><strong>Severity recommendation:</strong> low / medium / high with reasoning.</li>
+  </ul>
+</div>
+
+<h2 class="sec" id="severity">Severity recommendation</h2>
+<div class="concept">
+  <div class="concept-header"><div class="ch-icon">⚖️</div><div><div class="ch-title">How to grade severity without overclaiming</div><div class="ch-sub">Severity is based on risk and conduct, not only recovered payload</div></div></div>
+  <div class="concept-body">
+    <p>A reasonable recommendation is <strong>High severity attempted misuse</strong> if students support it with evidence: suspicious IP conversation, instruction to leave no traces, covert communication, BitCrypt research/use, and suspected steganographic transfer. But they should clearly state that completed IP theft is not conclusively proven unless hidden content is recovered.</p>
+  </div>
+</div>
+
+<div class="out-block gn">
+  <div class="ob-top"><div class="lbl">Suggested conclusion wording</div><div class="tag note">USE / ADAPT</div></div>
+  <pre>The investigation identified strong indicators of attempted intellectual property misuse and deliberate anti-forensic behaviour. Evidence includes ciphered communications discussing IP rights and payment, instructions to leave no traces, BitCrypt-related artefacts, and a suspicious BMP image attachment with characteristics consistent with a possible steganographic carrier. However, the suspected hidden payload was not recovered during this investigation. Therefore, the evidence supports a finding of likely attempted misuse and anti-forensic concealment, but not definitive proof of completed IP theft.</pre>
+</div>
+
+<div class="scenario-card" style="border-color:rgba(16,185,129,.45);border-left-color:var(--green)">
+  <div class="sc-ref" style="color:rgba(16,185,129,.6)">// Submission — Workshop Output</div>
+  <div class="sc-body">
+    <p>Submit one report containing: methodology, evidence baseline, timeline, evidence table, anti-forensics map, severity recommendation, and limitations.</p>
+    <p><strong>Minimum standard:</strong> every claim must be tied to a file, email, image, browser artefact, or Autopsy view.</p>
+    <p><strong>Excellent standard:</strong> students distinguish what is directly observed, what is inferred, and what remains unknown.</p>
+  </div>
+</div>
+
+<div class="divider" id="recap">📋 WHAT DID THIS INVESTIGATION DEMONSTRATE?</div>
+<div class="recap-grid">
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(34,211,238,.2);border-left:4px solid var(--cyan)">
+    <div class="rc-title" style="color:var(--cyan)">1 — Anti-forensics is often cumulative</div>
+    <div class="rc-body">No single artefact proves the whole case. The pattern emerges from several layers: ciphered email, suspicious attachment, encryption tool, browser activity, hash mismatch, and carved/deleted material.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(236,72,153,.2);border-left:4px solid var(--pink)">
+    <div class="rc-title" style="color:var(--pink-l)">2 — Steganography hides the existence of the message</div>
+    <div class="rc-body">A normal-looking BMP image may be the carrier. The investigative problem is not just decrypting content; it is first recognising that hidden content may exist.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(245,158,11,.2);border-left:4px solid var(--amber)">
+    <div class="rc-title" style="color:var(--amber-l)">3 — Autopsy gives strong triage, not every final answer</div>
+    <div class="rc-body">Autopsy helps locate emails, documents, metadata, images, web artefacts, and carved files. Advanced stego recovery, password cracking, and reverse engineering may require external tools.</div>
+  </div>
+  <div class="recap-card" style="background:var(--card);border:1px solid rgba(16,185,129,.2);border-left:4px solid var(--green)">
+    <div class="rc-title" style="color:var(--green-l)">4 — Good forensic reporting includes uncertainty</div>
+    <div class="rc-body">The strongest report does not exaggerate. It says what is proven, what is likely, and what remains unresolved. That is professional forensic reasoning.</div>
+  </div>
+</div>
+
+<div class="divider am" id="quiz">📝 KNOWLEDGE CHECK</div>
+<p style="color:var(--muted);font-size:14px;font-style:italic;margin-bottom:18px">Five questions. One correct answer each. Based on this workshop.</p>
+
+<div class="qcard" id="qc-0">
+  <div class="qcard-head"><div class="q-tag">Question 1</div><div class="q-text">Why is the Granada BMP image suspicious in this case?</div></div>
+  <div class="q-opts" id="qo-0">
+    <button class="q-opt" onclick="ans(0,0,false)"><span class="opt-let">A</span><span class="opt-txt">BMP files are rarely used in normal work, so the extension itself proves the file is malicious and should be reported as stolen intellectual property.</span></button>
+    <button class="q-opt" onclick="ans(0,1,true)"><span class="opt-let">B</span><span class="opt-txt">It appears in the suspicious email flow and has JPG/BMP variants, hash differences, and a BitCrypt link, making it a credible carrier candidate.</span></button>
+    <button class="q-opt" onclick="ans(0,2,false)"><span class="opt-let">C</span><span class="opt-txt">The EXIF date shows the image was taken before the emails, which means the image must contain the complete stolen proposal document.</span></button>
+    <button class="q-opt" onclick="ans(0,3,false)"><span class="opt-let">D</span><span class="opt-txt">Autopsy marks all duplicate images as steganographic containers when their names are similar, so no further comparison is needed.</span></button>
+  </div><div class="q-fb" id="qf-0"></div>
+</div>
+
+<div class="qcard" id="qc-1">
+  <div class="qcard-head"><div class="q-tag">Question 2</div><div class="q-text">What is the safest conclusion if the suspected hidden payload cannot be recovered?</div></div>
+  <div class="q-opts" id="qo-1">
+    <button class="q-opt" onclick="ans(1,0,false)"><span class="opt-let">A</span><span class="opt-txt">No misuse occurred, because a forensic report can only rely on fully recovered hidden files and must ignore surrounding behaviour.</span></button>
+    <button class="q-opt" onclick="ans(1,1,false)"><span class="opt-let">B</span><span class="opt-txt">Completed IP theft is proven, because the existence of BitCrypt is enough to establish both concealment and successful exfiltration.</span></button>
+    <button class="q-opt" onclick="ans(1,2,true)"><span class="opt-let">C</span><span class="opt-txt">Likely attempted misuse and anti-forensic concealment are supported, but completed IP theft is not definitively proven.</span></button>
+    <button class="q-opt" onclick="ans(1,3,false)"><span class="opt-let">D</span><span class="opt-txt">The investigation should be abandoned, because incomplete recovery makes all other artefacts irrelevant to management.</span></button>
+  </div><div class="q-fb" id="qf-1"></div>
+</div>
+
+<div class="qcard" id="qc-2">
+  <div class="qcard-head"><div class="q-tag">Question 3</div><div class="q-text">Which anti-forensic technique is represented by the ciphered John/Freddy emails?</div></div>
+  <div class="q-opts" id="qo-2">
+    <button class="q-opt" onclick="ans(2,0,false)"><span class="opt-let">A</span><span class="opt-txt">Secure deletion, because the messages were removed from the file system and only fragments survived in unallocated space.</span></button>
+    <button class="q-opt" onclick="ans(2,1,true)"><span class="opt-let">B</span><span class="opt-txt">Communication obfuscation, because the messages remain present but their content is deliberately made hard to read.</span></button>
+    <button class="q-opt" onclick="ans(2,2,false)"><span class="opt-let">C</span><span class="opt-txt">Registry persistence, because the email thread causes a hidden program to run automatically at user logon.</span></button>
+    <button class="q-opt" onclick="ans(2,3,false)"><span class="opt-let">D</span><span class="opt-txt">Network tunnelling, because the email text creates a covert channel through DNS or HTTP traffic.</span></button>
+  </div><div class="q-fb" id="qf-2"></div>
+</div>
+
+<div class="qcard" id="qc-3">
+  <div class="qcard-head"><div class="q-tag">Question 4</div><div class="q-text">Why should students avoid treating Enron/Jeff Skilling material as automatically incriminating?</div></div>
+  <div class="q-opts" id="qo-3">
+    <button class="q-opt" onclick="ans(3,0,false)"><span class="opt-let">A</span><span class="opt-txt">Public case material can never appear in a forensic report, even if it is relevant to motive, research context, or document provenance.</span></button>
+    <button class="q-opt" onclick="ans(3,1,false)"><span class="opt-let">B</span><span class="opt-txt">Autopsy cannot analyse old case images or email screenshots, so all Enron-related artefacts must be excluded automatically.</span></button>
+    <button class="q-opt" onclick="ans(3,2,true)"><span class="opt-let">C</span><span class="opt-txt">It may be legitimate research material or background noise unless it is linked to the suspected misuse path.</span></button>
+    <button class="q-opt" onclick="ans(3,3,false)"><span class="opt-let">D</span><span class="opt-txt">Only PST emails count as forensic evidence in this exercise; documents and images are not admissible for reasoning.</span></button>
+  </div><div class="q-fb" id="qf-3"></div>
+</div>
+
+<div class="qcard" id="qc-4">
+  <div class="qcard-head"><div class="q-tag">Question 5</div><div class="q-text">What is the strongest reason this case works well as an anti-forensics workshop?</div></div>
+  <div class="q-opts" id="qo-4">
+    <button class="q-opt" onclick="ans(4,0,false)"><span class="opt-let">A</span><span class="opt-txt">It has one clean final answer, so students can focus on copying the right conclusion rather than interpreting evidence.</span></button>
+    <button class="q-opt" onclick="ans(4,1,true)"><span class="opt-let">B</span><span class="opt-txt">It forces students to work from partial evidence, recognise concealment techniques, and report uncertainty properly.</span></button>
+    <button class="q-opt" onclick="ans(4,2,false)"><span class="opt-let">C</span><span class="opt-txt">It avoids ambiguity by making the hidden payload recoverable through standard Autopsy views alone.</span></button>
+    <button class="q-opt" onclick="ans(4,3,false)"><span class="opt-let">D</span><span class="opt-txt">It mainly teaches malware sandboxing, so students do not need disk-forensic or email-analysis reasoning.</span></button>
+  </div><div class="q-fb" id="qf-4"></div>
+</div>
+
+<div class="scoreboard" id="scoreboard">
+  <div class="sb-t">// Workshop Complete</div>
+  <div class="sb-n" id="sb-num"></div>
+  <div class="sb-of">CORRECT OUT OF 5</div>
+  <div class="sb-msg" id="sb-msg"></div>
+  <button class="sb-btn" onclick="resetQuiz()">↺ Try Again</button>
+</div>
+
+<div style="height:50px"></div>
+</main>
+</div>
+
+<footer>
+  <div>
+    <div class="f-course">CC7007 · Anti-Forensics Investigation Workshop</div>
+    <div class="f-mod">Autopsy · Suspected IP Theft</div>
+  </div>
+  <div class="f-right">
+    <div class="f-name">Digital Forensics · Evidence Reasoning</div>
+    <div class="f-sub">Autopsy / PST / Images / Steganography / Anti-Forensics</div>
+    <div style="font-family:var(--head);font-size:15px;font-weight:700;color:var(--cyan);margin-top:6px">Fatma Yasmine Loumachi</div>
+  </div>
+</footer>
+
+<script>
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      const m = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
+      if (m) m.classList.add('active');
+    }
+  });
+}, { rootMargin: '-10% 0px -70% 0px' });
+document.querySelectorAll('[id]').forEach(el => obs.observe(el));
+
+const CORRECT = [1,2,1,2,1];
+const TOTAL = 5;
+let score = 0, done = new Array(TOTAL).fill(false);
+const FB = [
+  {
+    c:"Correct. The suspiciousness comes from the combination: attachment flow, JPG/BMP variants, hash differences, and BitCrypt context. A single BMP alone is not proof.",
+    w:"Not quite. Do not overclaim from file type or EXIF alone. The Granada BMP matters because several indicators converge around it."
+  },
+  {
+    c:"Correct. That is the professional conclusion: strong attempted misuse / concealment indicators, but no definitive proof of completed IP theft without payload recovery.",
+    w:"Not quite. Lack of payload recovery does not clear the suspect, and BitCrypt alone does not prove completed theft. The correct position is calibrated uncertainty."
+  },
+  {
+    c:"Correct. The ciphered emails are communication obfuscation: they make content harder to read and slow the investigation.",
+    w:"Not quite. The email cipher hides communication content; it is not deletion, persistence, or tunnelling."
+  },
+  {
+    c:"Correct. Evidence must be linked to the suspected event. Background research material may be relevant context, but it is not automatically incriminating.",
+    w:"Not quite. Interesting artefacts are not automatically relevant. Students must connect them to the suspected misuse path."
+  },
+  {
+    c:"Correct. The teaching value is the uncertainty: students must identify anti-forensics and avoid pretending the case is fully solved.",
+    w:"Not quite. This is not valuable because it is clean; it is valuable because it is messy and realistic."
+  }
+];
+
+function ans(q,opt,correct){
+  if(done[q]) return; done[q]=true;
+  const opts=document.querySelectorAll(`#qo-${q} .q-opt`);
+  const fb=document.getElementById(`qf-${q}`);
+  const card=document.getElementById(`qc-${q}`);
+  opts.forEach((b,i)=>{
+    b.disabled=true;
+    if(i===opt)b.classList.add(correct?'correct':'wrong');
+    else if(i===CORRECT[q] && !correct)b.classList.add('correct');
+    else b.classList.add('dimmed');
+  });
+  fb.className=`q-fb show ${correct?'cfb':'wfb'}`;
+  fb.innerHTML=`<div class="fb-badge">${correct?'✓ Correct':'✗ Not quite'}</div>${FB[q][correct?'c':'w']}`;
+  card.classList.add(correct?'ac':'aw');
+  if(correct)score++;
+  if(done.every(Boolean))showScore();
+}
+function showScore(){
+  const board=document.getElementById('scoreboard');
+  const num=document.getElementById('sb-num');
+  const msg=document.getElementById('sb-msg');
+  board.classList.add('show');
+  const pct=score/TOTAL;
+  num.textContent=`${score} / ${TOTAL}`;
+  num.style.color=pct===1?'var(--green)':pct>=.6?'var(--cyan)':'var(--amber)';
+  msg.textContent=pct===1?'Good. You understood the evidential boundary, not just the artefacts.':pct>=.6?'Good enough. Re-read the questions you missed and focus on uncertainty handling.':'Go back through the anti-forensics map. The point is evidence + inference + limitation.';
+  board.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function resetQuiz(){
+  score=0; done=new Array(TOTAL).fill(false);
+  for(let i=0;i<TOTAL;i++){
+    document.getElementById(`qc-${i}`).classList.remove('ac','aw');
+    document.querySelectorAll(`#qo-${i} .q-opt`).forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','dimmed');});
+    const f=document.getElementById(`qf-${i}`); f.className='q-fb'; f.innerHTML='';
+  }
+  document.getElementById('scoreboard').classList.remove('show');
+  document.getElementById('quiz').scrollIntoView({behavior:'smooth'});
+}
+</script>
+</body>
+</html>
